@@ -1,7 +1,9 @@
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +38,7 @@ class TampilApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }
