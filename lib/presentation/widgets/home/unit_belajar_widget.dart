@@ -133,8 +133,8 @@ class UnitBelajarWidget extends StatelessWidget {
     required Widget statusWidget,
   }) {
     return Container(
-      padding: const EdgeInsets.all(14),
-      height: 130,
+      padding: const EdgeInsets.all(12),
+      height: 136,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(22),
@@ -142,11 +142,12 @@ class UnitBelajarWidget extends StatelessWidget {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Circle Icon Badge
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
@@ -154,16 +155,18 @@ class UnitBelajarWidget extends StatelessWidget {
             child: Icon(
               icon,
               color: iconColor,
-              size: 22,
+              size: 21,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
 
           // Title
           Text(
             title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.bold,
               color: Color(0xFF0F172A),
             ),
@@ -171,7 +174,7 @@ class UnitBelajarWidget extends StatelessWidget {
           const SizedBox(height: 4),
 
           // Status (Progress / Terkunci)
-          statusWidget,
+          Flexible(child: statusWidget),
         ],
       ),
     );

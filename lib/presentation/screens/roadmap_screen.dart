@@ -4,6 +4,7 @@ import '../widgets/roadmap/roadmap_header_widget.dart';
 import '../widgets/roadmap/roadmap_unit_card.dart';
 import '../widgets/roadmap/roadmap_path_widget.dart';
 import '../widgets/roadmap/locked_unit_card.dart';
+import 'lesson_screen.dart';
 
 class RoadmapScreen extends StatelessWidget {
   const RoadmapScreen({super.key});
@@ -45,10 +46,12 @@ class RoadmapScreen extends StatelessWidget {
           // 3. Roadmap Learning Path (Dotted Zigzag Path)
           RoadmapPathWidget(
             onActiveLessonPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Membuka Lesson 5: Speaking'),
-                  behavior: SnackBarBehavior.floating,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LessonScreen(
+                    lessonNumber: 6,
+                    lessonTag: 'Response',
+                  ),
                 ),
               );
             },

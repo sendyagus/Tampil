@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
+import 'auth/login_screen.dart';
 import '../widgets/profile/profile_header_card.dart';
 import '../widgets/profile/profile_communication_index_widget.dart';
 import '../widgets/profile/pencapaian_widget.dart';
@@ -11,6 +13,11 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+    final displayName = authService.currentUser != null
+        ? authService.userDisplayName
+        : 'Putri Anindya';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Column(
@@ -18,7 +25,7 @@ class ProfileScreen extends StatelessWidget {
         children: [
           // 1. Top Profile Hero Card with Floating Stats
           ProfileHeaderCard(
-            userName: 'Putri Anindya',
+            userName: displayName,
             userRoleGoal: 'Mahasiswa · Tujuan: Presentasi',
             levelLabel: 'Level Menengah',
             currentXp: 260,
@@ -105,6 +112,49 @@ class ProfileScreen extends StatelessWidget {
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
+                  },
+                  onKeluarPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: const Text('Keluar dari Akun?'),
+                        content: const Text(
+                          'Apakah kamu yakin ingin keluar? Kamu perlu masuk kembali untuk mengakses latihanmu.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Batal'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('Keluar'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      await AuthService().signOut();
+                      if (context.mounted) {
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      }
+                    }
                   },
                 ),
                 const SizedBox(height: 90), // Spacing for floating bottom bar

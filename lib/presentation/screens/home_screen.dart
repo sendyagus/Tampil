@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
 import '../widgets/home/header_widget.dart';
 import '../widgets/home/hero_card_widget.dart';
 import '../widgets/home/daily_challenge_widget.dart';
@@ -9,6 +10,7 @@ import '../widgets/home/custom_bottom_nav.dart';
 import 'test_screen.dart';
 import 'profile_screen.dart';
 import 'roadmap_screen.dart';
+import 'lesson_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,6 +23,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentNavIndex = 0; // Default to Home tab (0)
 
   Widget _buildHomeContent() {
+    final authService = AuthService();
+    final displayName = authService.currentUser != null
+        ? authService.userDisplayName
+        : 'Teman TAMPIL';
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -28,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Header (Avatar, Greeting, Bell)
-          const HeaderWidget(userName: 'Sendy', greeting: 'Selamat pagi'),
+          HeaderWidget(userName: displayName, greeting: 'Selamat datang'),
           const SizedBox(height: 20),
 
           // 2. Active Unit / Hero Card
@@ -42,10 +49,12 @@ class _HomeScreenState extends State<HomeScreen> {
             currentXp: 20,
             targetXp: 40,
             onContinuePressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Lanjut ke Lesson 5: Speaking'),
-                  behavior: SnackBarBehavior.floating,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LessonScreen(
+                    lessonNumber: 6,
+                    lessonTag: 'Response',
+                  ),
                 ),
               );
             },

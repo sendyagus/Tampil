@@ -2,11 +2,14 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'core/supabase_config.dart';
 import 'presentation/screens/home_screen.dart';
 import 'presentation/screens/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseConfig.initialize();
+
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class PengaturanWidget extends StatefulWidget {
   final VoidCallback? onTargetHarianPressed;
   final VoidCallback? onPrivasiPressed;
+  final VoidCallback? onKeluarPressed;
 
   const PengaturanWidget({
     super.key,
     this.onTargetHarianPressed,
     this.onPrivasiPressed,
+    this.onKeluarPressed,
   });
 
   @override
@@ -133,8 +135,6 @@ class _PengaturanWidgetState extends State<PengaturanWidget> {
               // 3. Privasi & data suara
               InkWell(
                 onTap: widget.onPrivasiPressed,
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(20)),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(
@@ -155,6 +155,50 @@ class _PengaturanWidgetState extends State<PengaturanWidget> {
                         Icons.chevron_right_rounded,
                         size: 18,
                         color: Color(0xFF94A3B8),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+
+              // 4. Keluar Akun
+              InkWell(
+                onTap: widget.onKeluarPressed,
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(20)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.logout_rounded,
+                          color: Color(0xFFEF4444),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Text(
+                          'Keluar dari akun',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF4444),
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: Color(0xFFEF4444),
                       ),
                     ],
                   ),

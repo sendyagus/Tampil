@@ -1,9 +1,15 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
 import 'home_screen.dart';
+import 'onboarding/onboarding_screen.dart';
+
+// TODO(auth): Set to false untuk mengembalikan alur login/onboarding normal.
+/// Bypass login sementara: langsung masuk ke HomeScreen setelah splash.
+const bool kBypassAuthTemporarily = true;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -80,9 +86,17 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        // Cek apakah user sudah memiliki sesi login aktif
+        final currentUser = AuthService().currentUser;
+        if (kBypassAuthTemporarily || currentUser != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          );
+        }
       }
     });
   }
