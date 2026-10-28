@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
 import '../home_screen.dart';
+import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -62,9 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -171,9 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goToRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-    );
+    context.pushDissolve((_) => const RegisterScreen());
   }
 
   @override

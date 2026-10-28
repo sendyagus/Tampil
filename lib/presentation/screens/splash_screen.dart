@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../utils/transition_utils.dart';
 import 'home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
@@ -89,13 +90,9 @@ class _SplashScreenState extends State<SplashScreen>
         // Cek apakah user sudah memiliki sesi login aktif
         final currentUser = AuthService().currentUser;
         if (kBypassAuthTemporarily || currentUser != null) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
+          if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
         } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-          );
+          if (mounted) context.pushDissolveReplacement((_) => const OnboardingScreen());
         }
       }
     });
