@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'roadmap_service.dart';
 
 class AuthService {
@@ -33,6 +34,9 @@ class AuthService {
     final userDoc = _firestore.collection('users').doc(user.uid);
     final snapshot = await userDoc.get();
 
+    // Deteksi provider (Google atau Email)
+    final isGoogle = user.providerData.any((p) => p.providerId == 'google.com');
+
     if (!snapshot.exists) {
       // Jika user baru pertama kali login/daftar, buat data awal sesuai PRD
       await userDoc.set({
@@ -41,7 +45,7 @@ class AuthService {
             fullName ??
             (user.displayName ?? (user.email?.split('@').first ?? 'User')),
         'email': user.email ?? '',
-        'auth_provider': 'email',
+        'auth_provider': isGoogle ? 'google' : 'email',
         'tahun_lahir': birthYear ?? 2004,
         'is_adult': true,
         'status': 'active',
@@ -128,9 +132,33 @@ class AuthService {
     return credential;
   }
 
-  // Sign In dengan Google (placeholder)
-  Future<bool> signInWithGoogle() async {
-    return false;
+  // Sign In dengan Google (Pop-up Akun Google Resmi Firebase)
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
+
+      // Membuka pop-up login Google bawaan Firebase
+      final UserCredential credential = await _auth.signInWithPopup(
+        googleProvider,
+      );
+
+      if (credential.user != null) {
+        // Otomatis sinkronkan profil user ke Firestore
+        await _syncUserProfile(
+          credential.user!,
+          fullName: credential.user!.displayName,
+        );
+        // Pastikan database units & lessons siap
+        await RoadmapService().seedInitialData();
+      }
+
+      return credential;
+    } catch (e) {
+      print('Error Google Sign-In: $e');
+      rethrow;
+    }
   }
 
   // Sign Out
