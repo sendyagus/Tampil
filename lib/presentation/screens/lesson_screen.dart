@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/auth_service.dart';
 import '../widgets/lesson/lesson_app_bar.dart';
 import '../widgets/lesson/lesson_button.dart';
 import '../widgets/lesson/lesson_steps.dart';
@@ -32,6 +33,7 @@ class _LessonScreenState extends State<LessonScreen> {
   static const int _totalSteps = 5;
 
   int _step = 0;
+  bool _hasAwardedXp = false;
 
   // Quiz state (step 3).
   int? _selectedOption;
@@ -45,7 +47,25 @@ class _LessonScreenState extends State<LessonScreen> {
   void _next() {
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
+
+      // Jika user tiba di langkah terakhir ("Lesson selesai!"), otomatis berikan +10 XP ke Firestore
+      if (_step == _totalSteps - 1 && !_hasAwardedXp) {
+        _hasAwardedXp = true;
+        _awardRewardXp();
+      }
     }
+  }
+
+  Future<void> _awardRewardXp() async {
+    await AuthService().addXp(10);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('🎉 Selamat! +10 XP berhasil ditambahkan ke akunmu!'),
+        backgroundColor: Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _restart() {

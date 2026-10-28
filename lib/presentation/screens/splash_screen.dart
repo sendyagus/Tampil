@@ -305,7 +305,7 @@ class _RingPainter extends CustomPainter {
     for (int i = 0; i < radii.length; i++) {
       paint
         ..strokeWidth = i == 0 ? 1.6 : 1.2
-        ..color = Colors.white.withOpacity(opacities[i] * shimmer);
+        ..color = Colors.white.withValues(alpha: opacities[i] * shimmer);
       canvas.drawCircle(center, shortest * radii[i], paint);
     }
   }
@@ -324,12 +324,12 @@ class _SplashDecorationPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint strokePaint = Paint()
-      ..color = Colors.white.withOpacity(0.22)
+      ..color = Colors.white.withValues(alpha: 0.22)
       ..strokeWidth = 1.4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     final Paint fillPaint = Paint()
-      ..color = Colors.white.withOpacity(0.28)
+      ..color = Colors.white.withValues(alpha: 0.28)
       ..style = PaintingStyle.fill;
 
     _drawTopLeftDashedCorner(canvas, strokePaint);

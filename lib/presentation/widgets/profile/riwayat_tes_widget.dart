@@ -21,16 +21,18 @@ class TestHistoryItem {
 }
 
 class RiwayatTesWidget extends StatelessWidget {
+  final List<TestHistoryItem>? items;
   final VoidCallback? onViewAllPressed;
 
   const RiwayatTesWidget({
     super.key,
+    this.items,
     this.onViewAllPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final List<TestHistoryItem> items = [
+    final List<TestHistoryItem> defaultItems = [
       TestHistoryItem(
         title: 'Final Test Unit 1',
         categoryDate: 'Daily · hari ini',
@@ -51,6 +53,8 @@ class RiwayatTesWidget extends StatelessWidget {
       ),
     ];
 
+    final displayItems = (items != null && items!.isNotEmpty) ? items! : defaultItems;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -68,8 +72,8 @@ class RiwayatTesWidget extends StatelessWidget {
             ),
             GestureDetector(
               onTap: onViewAllPressed,
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Text(
                     'Lihat semua',
                     style: TextStyle(
@@ -109,13 +113,13 @@ class RiwayatTesWidget extends StatelessWidget {
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
+            itemCount: displayItems.length,
             separatorBuilder: (context, index) => const Divider(
               height: 1,
               color: Color(0xFFF1F5F9),
             ),
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = displayItems[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(

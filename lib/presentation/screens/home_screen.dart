@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../services/auth_service.dart';
 import '../widgets/home/header_widget.dart';
@@ -24,107 +25,104 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHomeContent() {
     final authService = AuthService();
-    final displayName = authService.currentUser != null
-        ? authService.userDisplayName
-        : 'Teman TAMPIL';
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Header (Avatar, Greeting, Bell)
-          HeaderWidget(userName: displayName, greeting: 'Selamat datang'),
-          const SizedBox(height: 20),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: authService.userProfileStream,
+      builder: (context, snapshot) {
+        final userData = snapshot.data?.data();
 
-          // 2. Active Unit / Hero Card
-          HeroCardWidget(
-            streakDays: 5,
-            unitName: 'UNIT 1',
-            lessonTitle: 'Lesson 5: Speaking',
-            lessonSubtitle: 'Daily Communication',
-            currentLesson: 4,
-            totalLessons: 5,
-            currentXp: 20,
-            targetXp: 40,
-            onContinuePressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const LessonScreen(
-                    lessonNumber: 6,
-                    lessonTag: 'Response',
-                  ),
-                ),
-              );
-            },
+        final rawName = userData?['nama'] ??
+            (authService.currentUser != null
+                ? authService.userDisplayName
+                : 'User');
+
+        final displayName = rawName.isNotEmpty
+            ? '${rawName[0].toUpperCase()}${rawName.substring(1)}'
+            : 'User';
+
+        final streakDays = (userData?['current_streak'] is int)
+            ? userData!['current_streak'] as int
+            : 5;
+
+        final currentXp = (userData?['total_xp'] is int)
+            ? userData!['total_xp'] as int
+            : 20;
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Header (Avatar, Greeting, Bell)
+              HeaderWidget(userName: displayName, greeting: 'Selamat datang'),
+              const SizedBox(height: 20),
+
+              // 2. Active Unit / Hero Card
+              HeroCardWidget(
+                streakDays: streakDays,
+                unitName: 'UNIT 1',
+                lessonTitle: 'Lesson 5: Speaking',
+                lessonSubtitle: 'Daily Communication',
+                currentLesson: 4,
+                totalLessons: 5,
+                currentXp: currentXp,
+                targetXp: 40,
+                onContinuePressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const LessonScreen(
+                        lessonNumber: 6,
+                        lessonTag: 'Response',
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 18),
+
+              // 3. Daily Challenge Banner Card
+              DailyChallengeWidget(
+                challengeTitle: 'Ceritakan harimu dalam 30',
+                rewardXp: 10,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Membuka Daily Challenge'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 22),
+
+              // 4. Unit Belajar Section
+              UnitBelajarWidget(
+                onViewRoadmapPressed: () {
+                  setState(() => _currentNavIndex = 1);
+                },
+              ),
+              const SizedBox(height: 22),
+
+              // 5. Aktivitas Terbaru Section
+              AktivitasTerbaruWidget(
+                onViewAllPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Menampilkan semua aktivitas'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 90), // Spacing for floating bottom bar
+            ],
           ),
-          const SizedBox(height: 18),
-
-          // 3. Daily Challenge Banner Card
-          DailyChallengeWidget(
-            challengeTitle: 'Ceritakan harimu dalam 30',
-            rewardXp: 10,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Membuka Daily Challenge'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 22),
-
-          // 4. Unit Belajar Section
-          UnitBelajarWidget(
-            onViewRoadmapPressed: () {
-              setState(() => _currentNavIndex = 1);
-            },
-          ),
-          const SizedBox(height: 22),
-
-          // 5. Aktivitas Terbaru Section
-          AktivitasTerbaruWidget(
-            onViewAllPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Menampilkan semua aktivitas'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 90), // Spacing for floating bottom bar
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildPlaceholderContent(String title, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: const Color(0xFF6366F1).withOpacity(0.5)),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Halaman dalam pengembangan',
-            style: TextStyle(color: Color(0xFF64748B)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Popup yang ditampilkan bila pengguna < 18 tahun.
 /// Warna biru utama aplikasi (Color(0xFF6366F1)).
 class AgeRestrictionPopup extends StatelessWidget {
-  const AgeRestrictionPopup({Key? key}) : super(key: key);
+  const AgeRestrictionPopup({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,7 @@ class AgeRestrictionPopup extends StatelessWidget {
             Icon(
               Icons.warning_amber_rounded,
               size: 72,
-              color: const Color(0xFF6366F1).withOpacity(0.8),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.8),
             ),
             const SizedBox(height: 24),
             const Text(

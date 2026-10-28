@@ -81,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Arahkan ke ConsentScreen dengan membawa data untuk disimpan ke Supabase setelah persetujuan
+    // Arahkan ke ConsentScreen dengan membawa data untuk disimpan ke Firebase setelah persetujuan
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ConsentScreen(

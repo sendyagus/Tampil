@@ -108,8 +108,8 @@ class _ContextSelectorWidgetState extends State<ContextSelectorWidget> {
                       boxShadow: [
                         BoxShadow(
                           color: isSelected
-                              ? const Color(0xFF6366F1).withOpacity(0.08)
-                              : Colors.black.withOpacity(0.02),
+                              ? const Color(0xFF6366F1).withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.02),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
