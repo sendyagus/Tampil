@@ -1,0 +1,6 @@
+node_modules/
+.env
+credentials/*.json
+!credentials/service-account.example.json
+!credentials/oauth-client.example.json
+npm-debug.log*
