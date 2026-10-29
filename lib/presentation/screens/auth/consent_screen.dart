@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/auth_service.dart';
+import '../../utils/transition_utils.dart';
 import '../home_screen.dart';
 
 class ConsentScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
         );
 
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          DissolvePageRoute(builder: (_) => const HomeScreen()),
           (route) => false,
         );
       } catch (e) {
@@ -71,7 +72,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
     } else {
       // Flow tanpa email/password (misal direct onboarding/consent)
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        DissolvePageRoute(builder: (_) => const HomeScreen()),
         (route) => false,
       );
     }

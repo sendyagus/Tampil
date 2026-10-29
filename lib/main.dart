@@ -32,7 +32,6 @@ class TampilApp extends StatelessWidget {
     return MaterialApp(
       title: 'TAMPIL - AI Communication Coach',
       debugShowCheckedModeBanner: false,
-      useInheritedMediaQuery: true,
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
       theme: ThemeData(

@@ -7,6 +7,7 @@ import '../widgets/roadmap/roadmap_header_widget.dart';
 import '../widgets/roadmap/roadmap_unit_card.dart';
 import '../widgets/roadmap/roadmap_path_widget.dart';
 import '../widgets/roadmap/locked_unit_card.dart';
+import '../utils/transition_utils.dart';
 import 'lesson_screen.dart';
 
 /// Layar Roadmap. Seluruh konten (unit & lesson) dibaca secara LIVE dari
@@ -74,11 +75,24 @@ class RoadmapScreen extends StatelessWidget {
                 final unit3Lessons = _lessonsForUnit(allLessons, unit3);
                 final totalLessons = allLessons.length;
 
+<<<<<<< HEAD
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 16,
+=======
+                  // 3. Roadmap Learning Path (Dotted Zigzag Path)
+                  RoadmapPathWidget(
+                    onActiveLessonPressed: () {
+                      context.pushDissolve(
+                        (_) => const LessonScreen(
+                          lessonNumber: 6,
+                          lessonTag: 'Response',
+                        ),
+                      );
+                    },
+>>>>>>> 4c1879f6a13b3f38b3d3039686c436a5c7f365ab
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

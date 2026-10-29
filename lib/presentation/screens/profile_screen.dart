@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/test_session_service.dart';
 import 'auth/login_screen.dart';
+import '../utils/transition_utils.dart';
 import '../widgets/profile/profile_header_card.dart';
 import '../widgets/profile/profile_communication_index_widget.dart';
 import '../widgets/profile/pencapaian_widget.dart';
@@ -224,7 +225,7 @@ class ProfileScreen extends StatelessWidget {
                           await AuthService().signOut();
                           if (context.mounted) {
                             Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(
+                              DissolvePageRoute(
                                 builder: (_) => const LoginScreen(),
                               ),
                               (route) => false,

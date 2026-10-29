@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
+import '../../utils/transition_utils.dart';
 import 'consent_screen.dart';
 import 'age_failed_screen.dart';
 import 'login_screen.dart';
+import '../home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -53,9 +55,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     final usia = int.tryParse(usiaStr);
     if (usia == null || usia < 18) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AgeFailedScreen()),
-      );
+      context.pushDissolveReplacement((_) => const AgeFailedScreen());
       return;
     }
 
@@ -82,14 +82,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // Arahkan ke ConsentScreen dengan membawa data untuk disimpan ke Firebase setelah persetujuan
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ConsentScreen(
-          email: email,
-          password: password,
-          fullName: nama,
-          age: usia,
-        ),
+    context.pushDissolve(
+      (_) => ConsentScreen(
+        email: email,
+        password: password,
+        fullName: nama,
+        age: usia,
       ),
     );
   }
@@ -97,7 +95,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _daftarWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await _authService.signInWithGoogle();
+      final credential = await _authService.signInWithGoogle();
+      if (credential != null && credential.user != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendaftaran dengan Google berhasil!'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -114,9 +124,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _goToLogin() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    context.pushDissolveReplacement((_) => const LoginScreen());
   }
 
   @override
@@ -301,13 +309,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        icon: const Text(
-                          'G',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF4285F4),
-                          ),
+                        icon: Image.asset(
+                          'assets/images/google_logo.png',
+                          width: 22,
+                          height: 22,
+                          fit: BoxFit.contain,
                         ),
                         label: const Text(
                           'Lanjut dengan Google',
