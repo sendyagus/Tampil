@@ -41,6 +41,7 @@ class LessonModel {
   final String targetAspek;
   final String unlockRule;
   final String status;
+  final List<dynamic> blocks;
 
   LessonModel({
     required this.id,
@@ -51,6 +52,7 @@ class LessonModel {
     required this.targetAspek,
     required this.unlockRule,
     required this.status,
+    this.blocks = const [],
   });
 
   factory LessonModel.fromFirestore(DocumentSnapshot doc) {
@@ -64,7 +66,59 @@ class LessonModel {
       targetAspek: data['target_aspek'] ?? '',
       unlockRule: data['unlock_rule'] ?? 'prev_completed',
       status: data['status'] ?? 'draft',
+      blocks: (data['blocks'] is List)
+          ? List<dynamic>.from(data['blocks'] as List)
+          : const [],
     );
+  }
+
+  /// Daftar blok konten lesson (materi/video/kuis) siap pakai.
+  List<LessonBlock> get blockList =>
+      blocks.map(LessonBlock.fromMap).where((b) => b.tipe.isNotEmpty).toList();
+}
+
+/// Satu blok konten lesson yang dibuat admin lewat dashboard CMS.
+class LessonBlock {
+  final String tipe; // teks | materi | video | gambar | kuis
+  final Map<String, dynamic> data;
+
+  LessonBlock(this.tipe, this.data);
+
+  factory LessonBlock.fromMap(dynamic m) {
+    final map = (m is Map)
+        ? Map<String, dynamic>.from(m)
+        : <String, dynamic>{};
+    // Migrasi blok lama format kuis: opsiA/opsiB/opsiC -> list 'opsi'.
+    if (map['tipe'] == 'kuis' &&
+        map['opsi'] == null &&
+        (map['opsiA'] != null || map['opsiB'] != null || map['opsiC'] != null)) {
+      map['opsi'] = [
+        map['opsiA'],
+        map['opsiB'],
+        map['opsiC'],
+      ].where((o) => o != null && o.toString().isNotEmpty).join('\n');
+    }
+    return LessonBlock((map['tipe'] ?? '').toString(), map);
+  }
+
+  String str(String key) => (data[key] ?? '').toString();
+  int get intVal => int.tryParse((data['jawaban'] ?? '0').toString()) ?? 0;
+
+  /// Opsi kuis: dipisah baris; fallback ke list Firestore langsung.
+  List<String> get opsiList {
+    final raw = data['opsi'];
+    List<String> list;
+    if (raw is List) {
+      list = raw.map((e) => e.toString().trim()).toList();
+    } else {
+      list = raw
+          .toString()
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    return list.length >= 2 ? list : const [];
   }
 }
 
@@ -86,6 +140,29 @@ class RoadmapService {
       return list;
     } catch (e) {
       print('Error get units: $e');
+      return [];
+    }
+  }
+
+  // Mengambil SEMUA lesson published lintas unit (untuk menghitung total
+  // lesson & mengelompokkan lesson per unit di layar Roadmap).
+  Future<List<LessonModel>> getPublishedLessons() async {
+    try {
+      final snapshot = await _firestore
+          .collection('lessons')
+          .where('status', isEqualTo: 'published')
+          .get();
+
+      final list = snapshot.docs
+          .map((doc) => LessonModel.fromFirestore(doc))
+          .toList();
+      list.sort((a, b) {
+        final byUnit = a.unitId.compareTo(b.unitId);
+        return byUnit != 0 ? byUnit : a.urutan.compareTo(b.urutan);
+      });
+      return list;
+    } catch (e) {
+      print('Error get all lessons: $e');
       return [];
     }
   }

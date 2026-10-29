@@ -9,7 +9,7 @@ import 'onboarding/onboarding_screen.dart';
 
 // TODO(auth): Set to false untuk mengembalikan alur login/onboarding normal.
 /// Bypass login sementara: langsung masuk ke HomeScreen setelah splash.
-const bool kBypassAuthTemporarily = true;
+const bool kBypassAuthTemporarily = false;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

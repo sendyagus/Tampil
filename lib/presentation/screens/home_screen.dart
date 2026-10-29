@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../widgets/home/header_widget.dart';
 import '../widgets/home/hero_card_widget.dart';
+import '../widgets/home/cms_banner_widget.dart';
 import '../widgets/home/daily_challenge_widget.dart';
 import '../widgets/home/unit_belajar_widget.dart';
 import '../widgets/home/aktivitas_terbaru_widget.dart';
@@ -80,6 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               const SizedBox(height: 18),
+
+              // 2b. CMS Banner (konten dikelola lewat dashboard admin)
+              const CmsBannerWidget(),
 
               // 3. Daily Challenge Banner Card
               DailyChallengeWidget(

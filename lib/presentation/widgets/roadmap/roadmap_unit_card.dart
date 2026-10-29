@@ -20,7 +20,9 @@ class RoadmapUnitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (completedLessons / totalLessons).clamp(0.0, 1.0);
+    final double progress = totalLessons <= 0
+        ? 0.0
+        : (completedLessons / totalLessons).clamp(0.0, 1.0);
 
     return Container(
       width: double.infinity,

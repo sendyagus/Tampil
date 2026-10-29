@@ -155,4 +155,43 @@ class AuthService {
     }
     return 'User';
   }
+
+  // ============================ PROGRES LESSON ============================
+
+  /// Tandai satu lesson selesai untuk user aktif (membuka lesson berikutnya).
+  Future<void> markLessonCompleted({
+    required String lessonId,
+    String unitId = '',
+  }) async {
+    final uid = currentUser?.uid;
+    if (uid == null || lessonId.isEmpty) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('lesson_progress')
+          .doc(lessonId)
+          .set({
+            'lesson_id': lessonId,
+            'unit_id': unitId,
+            'completed_at': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      print('Gagal menyimpan progres lesson: $e');
+    }
+  }
+
+  /// Stream berisi semua lesson_id yang sudah diselesaikan user aktif.
+  Stream<Set<String>> get completedLessonsStream {
+    return _auth.authStateChanges().asyncExpand((user) {
+      final uid = user?.uid ?? _auth.currentUser?.uid;
+      if (uid == null) return const Stream.empty();
+      return _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('lesson_progress')
+          .snapshots()
+          .map((snap) => snap.docs.map((d) => d.id).toSet());
+    });
+  }
 }
