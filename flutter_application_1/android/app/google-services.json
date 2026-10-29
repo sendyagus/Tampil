@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "886237187383",
+    "project_id": "tampil-a0b91",
+    "storage_bucket": "tampil-a0b91.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886237187383:android:e105fa94151d8b334c5eb2",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAse0TxSg31vvleQ6LHb-Yq8GVYVEIpC3Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
