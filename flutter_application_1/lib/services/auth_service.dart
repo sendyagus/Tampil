@@ -50,11 +50,13 @@ class AuthService {
         'is_adult': true,
         'status': 'active',
         'tujuan': ['Percakapan sehari-hari'],
-        // UserStats (PRD Bagian 13 & 20)
-        'total_xp': 20,
+        // UserStats (PRD Bagian 13 & 20) — mulai dari 0 agar angka di beranda
+        // benar-benar hasil aktivitas user, bukan nilai demo.
+        'total_xp': 0,
+        'xp_by_day': <String, int>{},
         'level': 'Pemula',
-        'current_streak': 5,
-        'longest_streak': 5,
+        'current_streak': 0,
+        'longest_streak': 0,
         'last_activity_date': DateTime.now().toIso8601String().split('T').first,
         'fokus_aspek': 'Kelancaran jeda',
         // UserQuota (PRD Bagian 10.9 & 20)
@@ -70,15 +72,44 @@ class AuthService {
     }
   }
 
-  // Menambahkan XP ke akun user di Cloud Firestore
+  // Kunci tanggal 'YYYY-MM-DD' untuk pencatatan XP harian & streak.
+  static String dateKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  /// Menambahkan XP + update XP harian, tanggal aktivitas, dan streak.
+  /// Streak bertambah bila kemarin juga aktif, dan reset ke 1 bila bolong.
   Future<void> addXp(int xp) async {
     final uid = currentUser?.uid;
     if (uid == null) return;
 
+    final ref = _firestore.collection('users').doc(uid);
+    final today = dateKey(DateTime.now());
+    final yesterday = dateKey(
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+
     try {
-      await _firestore.collection('users').doc(uid).update({
+      final snap = await ref.get();
+      final data = snap.data() ?? {};
+      final last = (data['last_activity_date'] ?? '').toString();
+      final streak = data['current_streak'] is int ? data['current_streak'] : 0;
+      final longest = data['longest_streak'] is int ? data['longest_streak'] : 0;
+
+      int newStreak = streak;
+      if (last != today) {
+        newStreak = last == yesterday ? streak + 1 : 1;
+      }
+      final newLongest = newStreak > longest ? newStreak : longest;
+
+      await ref.update({
         'total_xp': FieldValue.increment(xp),
-        'last_activity_date': DateTime.now().toIso8601String().split('T').first,
+        // XP harian dipakai kartu Hero ("Target harian x/y XP") di beranda.
+        'xp_by_day.$today': FieldValue.increment(xp),
+        'last_activity_date': today,
+        'current_streak': newStreak,
+        'longest_streak': newLongest,
       });
       print('🎉 Berhasil menambah +$xp XP ke Firestore untuk user $uid!');
     } catch (e) {
@@ -98,7 +129,7 @@ class AuthService {
 
     if (credential.user != null) {
       await _syncUserProfile(credential.user!);
-      // Mengisi 3 Unit & 15 Lesson ke Firestore saat user berhasil login
+      // Mengisi 3 Modul & 15 Lesson ke Firestore saat user berhasil login
       await RoadmapService().seedInitialData();
     }
 
@@ -150,7 +181,7 @@ class AuthService {
           credential.user!,
           fullName: credential.user!.displayName,
         );
-        // Pastikan database units & lessons siap
+        // Pastikan database modul & lessons siap
         await RoadmapService().seedInitialData();
       }
 
@@ -189,7 +220,8 @@ class AuthService {
   /// Tandai satu lesson selesai untuk user aktif (membuka lesson berikutnya).
   Future<void> markLessonCompleted({
     required String lessonId,
-    String unitId = '',
+    String modulId = '',
+    int xp = 10,
   }) async {
     final uid = currentUser?.uid;
     if (uid == null || lessonId.isEmpty) return;
@@ -201,7 +233,8 @@ class AuthService {
           .doc(lessonId)
           .set({
             'lesson_id': lessonId,
-            'unit_id': unitId,
+            'modul_id': modulId,
+            'xp': xp,
             'completed_at': FieldValue.serverTimestamp(),
           });
     } catch (e) {
@@ -209,8 +242,20 @@ class AuthService {
     }
   }
 
-  /// Stream berisi semua lesson_id yang sudah diselesaikan user aktif.
-  Stream<Set<String>> get completedLessonsStream {
+  /// Satu panggilan lengkap untuk "lesson selesai": simpan progres DAN beri XP
+  /// supaya keduanya selalu konsisten di Firestore.
+  Future<void> completeLesson({
+    required String lessonId,
+    String modulId = '',
+    int xp = 10,
+  }) async {
+    await markLessonCompleted(lessonId: lessonId, modulId: modulId, xp: xp);
+    await addXp(xp);
+  }
+
+  /// Stream progres lesson user aktif (termasuk waktu selesai & XP),
+  /// tersortir terbaru di depan.
+  Stream<List<LessonProgress>> get lessonProgressStream {
     return _auth.authStateChanges().asyncExpand((user) {
       final uid = user?.uid ?? _auth.currentUser?.uid;
       if (uid == null) return const Stream.empty();
@@ -219,7 +264,48 @@ class AuthService {
           .doc(uid)
           .collection('lesson_progress')
           .snapshots()
-          .map((snap) => snap.docs.map((d) => d.id).toSet());
+          .map((snap) {
+            final list = snap.docs.map(LessonProgress.fromDoc).toList()
+              ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+            return list;
+          });
     });
+  }
+
+  /// Stream berisi semua lesson_id yang sudah diselesaikan user aktif.
+  Stream<Set<String>> get completedLessonsStream {
+    return lessonProgressStream.map(
+      (list) => list.map((p) => p.lessonId).toSet(),
+    );
+  }
+}
+
+/// Satu dokumen progres lesson (`users/{uid}/lesson_progress/{lessonId}`).
+class LessonProgress {
+  final String lessonId;
+  final String modulId;
+  final int xp;
+  final DateTime completedAt;
+
+  LessonProgress({
+    required this.lessonId,
+    required this.modulId,
+    required this.xp,
+    required this.completedAt,
+  });
+
+  factory LessonProgress.fromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final raw = data['completed_at'];
+    return LessonProgress(
+      lessonId: (data['lesson_id'] ?? doc.id).toString(),
+      modulId: (data['modul_id'] ?? data['unit_id'] ?? '').toString(),
+      xp: data['xp'] is int ? data['xp'] : 10,
+      completedAt: raw is Timestamp
+          ? raw.toDate()
+          // Timestamp masih pending di cache lokal / dokumen lama tanpa tanggal:
+          // anggap baru saja selesai agar urutan aktivitas tetap masuk akal.
+          : DateTime.now(),
+    );
   }
 }

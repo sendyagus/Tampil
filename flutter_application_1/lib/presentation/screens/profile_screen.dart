@@ -137,13 +137,7 @@ class ProfileScreen extends StatelessWidget {
                       builder: (context, historySnap) {
                         final historySessions = historySnap.data ?? [];
                         final historyItems = historySessions.map((s) {
-                          final title = s.caseId == 'case_001'
-                              ? 'Perkenalan Diri'
-                              : (s.caseId == 'case_002'
-                                  ? 'Menyela diskusi sopan'
-                                  : (s.caseId == 'case_003'
-                                      ? 'Presentasi ide di kelas'
-                                      : 'Latihan Komunikasi'));
+                          final title = s.caseTitle;
                           return TestHistoryItem(
                             title: title,
                             categoryDate:

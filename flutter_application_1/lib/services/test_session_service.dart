@@ -46,6 +46,20 @@ class TestSessionModel {
     );
   }
 
+  /// Judul kasus yang mudah dibaca (dipakai beranda & riwayat tes di profil).
+  String get caseTitle {
+    switch (caseId) {
+      case 'case_001':
+        return 'Perkenalan Diri';
+      case 'case_002':
+        return 'Menyela diskusi sopan';
+      case 'case_003':
+        return 'Presentasi ide di kelas';
+      default:
+        return 'Latihan Komunikasi';
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'session_id': sessionId,
@@ -93,6 +107,23 @@ class TestSessionService {
     } catch (e) {
       print('Error save test session: $e');
     }
+  }
+
+  /// Stream riwayat tes user, terbaru di depan. Disortir di memori (tanpa
+  /// orderBy) agar tidak butuh index Firebase tambahan.
+  Stream<List<TestSessionModel>> watchUserHistory(String userId) {
+    if (userId.isEmpty) return const Stream.empty();
+    return _firestore
+        .collection('test_sessions')
+        .where('user_id', isEqualTo: userId)
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => TestSessionModel.fromFirestore(doc))
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
   // Mengambil riwayat latihan milik user tertentu

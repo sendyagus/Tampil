@@ -13,7 +13,7 @@ Future<void> main() async {
   // Inisialisasi Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Otomatis isi database units & lessons ke Cloud Firestore
+  // Otomatis isi database modul & lessons ke Cloud Firestore
   await RoadmapService().seedInitialData();
 
   runApp(

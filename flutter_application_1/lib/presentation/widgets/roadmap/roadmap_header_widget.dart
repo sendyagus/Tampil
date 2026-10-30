@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 class RoadmapHeaderWidget extends StatelessWidget {
-  final int totalUnits;
+  final int totalModuls;
   final int totalLessons;
   final int streakDays;
 
   const RoadmapHeaderWidget({
     super.key,
-    this.totalUnits = 3,
+    this.totalModuls = 3,
     this.totalLessons = 15,
     this.streakDays = 5,
   });
@@ -32,7 +32,7 @@ class RoadmapHeaderWidget extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '$totalUnits unit · $totalLessons lesson',
+              '$totalModuls modul · $totalLessons lesson',
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF64748B),

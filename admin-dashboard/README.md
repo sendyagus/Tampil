@@ -50,11 +50,34 @@ admin-dashboard/
 | Kunci | Label | Tab Spreadsheet | Collection Firestore |
 |-------|-------|-----------------|----------------------|
 | `hero` | Hero Card / Banner | Hero | `cms_hero` |
-| `unit` | Unit Belajar | UnitBelajar | `units` |
+| `modul` | Modul Belajar | ModulBelajar | `modul` |
+| `lesson` | Lesson / Langkah Roadmap | Lesson | `lessons` |
 | `dailyChallenge` | Daily Challenge | DailyChallenge | `cms_daily_challenge` |
 | `onboarding` | Onboarding / Roadmap | Onboarding | `cms_onboarding` |
 
-> `unit` memakai collection `units` yang sudah dipakai aplikasi (lihat `lib/services/roadmap_service.dart`).
+> `modul` & `lesson` memakai collection `modul` dan `lessons` yang dibaca aplikasi
+> (lihat `lib/services/roadmap_service.dart`). Dulu tipe ini bernama `unit`
+> dengan collection `units` dan tab `UnitBelajar` — sudah diganti menjadi **MODUL**.
+
+### Konfigurasi form di `contentTypes.js`
+
+Field tambahan di bawah opsional; semuanya hanya memengaruhi **tampilan form**,
+bukan urutan kolom Spreadsheet (header lama tetap harus cocok dengan `fields`).
+
+| Kunci | Fungsi |
+|-------|--------|
+| `fieldLabels` | Label ramah pengganti nama kolom (`modul_id` → "Modul"). |
+| `relationFields` | Kolom jadi dropdown yang isinya diambil dari tipe lain (`modul_id: 'modul'`). |
+| `enumFields` | Kolom jadi dropdown dengan pilihan tetap (`unlock_rule`, `status`). |
+| `jsonFields` | Kolom teks JSON, dibuka sebagai editor blok (`blocks`). |
+| `formOrder` | Urutan tampil field di form. Lesson: **modul dipilih lebih dulu**, lalu `lesson_id`. |
+| `autoId` | Isi ID otomatis dari template, mis. `{group}_lesson_{number}` → `modul_01_lesson_04`. Nomornya dihitung dari data yang sudah ada pada `groupField`. |
+| `autoNumber` | Isi kolom angka otomatis (`urutan` = nomor terakhir + 1). |
+| `autoDefaults` | Nilai default yang mengikuti jumlah data: lesson pertama `always_unlocked`, sisanya `prev_completed`. |
+
+Saran otomatis bisa ditimpa manual — field-nya lalu menampilkan "Saran otomatis: …"
+plus tombol **Pakai otomatis**. ID yang sudah dipakai akan menimpa baris lama, jadi
+dashboard meminta konfirmasi lebih dulu.
 
 ## Persiapan (satu kali)
 

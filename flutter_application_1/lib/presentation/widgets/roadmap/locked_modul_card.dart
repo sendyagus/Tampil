@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-class LockedUnitCard extends StatelessWidget {
-  final String unitNumber;
+class LockedModulCard extends StatelessWidget {
+  final String modulNumber;
   final String title;
   final String subtitle;
   final VoidCallback? onSkipPressed;
 
-  const LockedUnitCard({
+  const LockedModulCard({
     super.key,
-    required this.unitNumber,
+    required this.modulNumber,
     required this.title,
     required this.subtitle,
     this.onSkipPressed,
@@ -55,7 +55,7 @@ class LockedUnitCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  unitNumber,
+                  modulNumber,
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -84,7 +84,7 @@ class LockedUnitCard extends StatelessWidget {
             ),
           ),
 
-          // Outlined Lewati Unit Button
+          // Outlined Lewati Modul Button
           OutlinedButton(
             onPressed: onSkipPressed,
             style: OutlinedButton.styleFrom(
@@ -95,7 +95,7 @@ class LockedUnitCard extends StatelessWidget {
               ),
             ),
             child: const Text(
-              'Lewati Unit',
+              'Lewati Modul',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,

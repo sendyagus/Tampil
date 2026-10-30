@@ -139,7 +139,7 @@ class RoadmapPathWidget extends StatelessWidget {
           Icon(Icons.account_tree_rounded, size: 32, color: Color(0xFF94A3B8)),
           SizedBox(height: 8),
           Text(
-            'Belum ada lesson untuk unit ini.',
+            'Belum ada lesson untuk modul ini.',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -203,10 +203,10 @@ class _NodeInfo extends StatelessWidget {
       crossAxisAlignment: cross,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('LESSON \${index + 1}', style: tagStyle),
+        Text('LESSON ${index + 1}', style: tagStyle),
         const SizedBox(height: 2),
         Text(
-          lesson.judul.isEmpty ? 'Lesson \${index + 1}' : lesson.judul,
+          lesson.judul.isEmpty ? 'Lesson ${index + 1}' : lesson.judul,
           style: titleStyle,
           textAlign: alignRight ? TextAlign.end : TextAlign.start,
         ),

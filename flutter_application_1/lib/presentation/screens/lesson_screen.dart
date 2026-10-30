@@ -98,24 +98,26 @@ class _LessonScreenState extends State<LessonScreen> {
         if (_step == _blocks.length && !_hasAwardedXp) {
           _hasAwardedXp = true;
           if (!widget.rewardAlreadyGiven) {
-            _awardRewardXp();
-            _markLessonDone();
+            _completeLesson();
           }
         }
       });
     }
   }
 
-  /// Simpan progres: lesson ini selesai -> roadmap akan membuka lesson
-  /// berikutnya secara otomatis.
-  void _markLessonDone() {
+  /// Simpan progres (lesson berikutnya jadi terbuka) DAN beri XP dalam satu
+  /// panggilan agar keduanya selalu konsisten di Firestore.
+  Future<void> _completeLesson() async {
     final l = widget.lesson;
-    if (l == null || l.lessonId.isEmpty) return;
-    AuthService().markLessonCompleted(lessonId: l.lessonId, unitId: l.unitId);
-  }
-
-  Future<void> _awardRewardXp() async {
-    await AuthService().addXp(10);
+    if (l != null && l.lessonId.isNotEmpty) {
+      await AuthService().completeLesson(
+        lessonId: l.lessonId,
+        modulId: l.modulId,
+      );
+    } else {
+      // Konten demo tanpa lesson Firestore: tetap beri XP.
+      await AuthService().addXp(10);
+    }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

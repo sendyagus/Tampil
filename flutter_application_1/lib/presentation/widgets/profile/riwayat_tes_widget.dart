@@ -34,7 +34,7 @@ class RiwayatTesWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<TestHistoryItem> defaultItems = [
       TestHistoryItem(
-        title: 'Final Test Unit 1',
+        title: 'Final Test Modul 1',
         categoryDate: 'Daily · hari ini',
         score: 68,
         statusLabel: 'Baik',

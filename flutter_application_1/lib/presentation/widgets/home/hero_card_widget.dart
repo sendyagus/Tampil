@@ -2,31 +2,36 @@ import 'package:flutter/material.dart';
 
 class HeroCardWidget extends StatelessWidget {
   final int streakDays;
-  final String unitName;
+  final String modulName;
   final String lessonTitle;
   final String lessonSubtitle;
   final int currentLesson;
   final int totalLessons;
   final int currentXp;
   final int targetXp;
+  final String continueLabel;
   final VoidCallback? onContinuePressed;
 
   const HeroCardWidget({
     super.key,
     this.streakDays = 5,
-    this.unitName = 'UNIT 1',
+    this.modulName = 'MODUL 1',
     this.lessonTitle = 'Lesson 5: Speaking',
     this.lessonSubtitle = 'Daily Communication',
     this.currentLesson = 4,
     this.totalLessons = 5,
     this.currentXp = 20,
     this.targetXp = 40,
+    this.continueLabel = 'Lanjut',
     this.onContinuePressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (currentLesson / totalLessons).clamp(0.0, 1.0);
+    final double progress = totalLessons <= 0
+        ? 0.0
+        : (currentLesson / totalLessons).clamp(0.0, 1.0);
+    final bool targetTercapai = currentXp >= targetXp;
 
     return Container(
       width: double.infinity,
@@ -115,7 +120,7 @@ class HeroCardWidget extends StatelessWidget {
                         ),
                       ),
 
-                      // Unit Tag
+                      // Modul Tag
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -126,7 +131,7 @@ class HeroCardWidget extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          unitName,
+                          modulName,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -212,14 +217,20 @@ class HeroCardWidget extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.auto_awesome,
-                              color: Color(0xFF38BDF8), // Cyan star icon
+                            Icon(
+                              targetTercapai
+                                  ? Icons.verified_rounded
+                                  : Icons.auto_awesome,
+                              color: targetTercapai
+                                  ? const Color(0xFFBBF7D0)
+                                  : const Color(0xFF38BDF8), // Cyan star icon
                               size: 16,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Target harian $currentXp/$targetXp XP',
+                              targetTercapai
+                                  ? 'Target harian $currentXp/$targetXp XP · tuntas'
+                                  : 'Target harian $currentXp/$targetXp XP',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -245,18 +256,18 @@ class HeroCardWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Lanjut',
-                              style: TextStyle(
+                              continueLabel,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(
+                            const SizedBox(width: 4),
+                            const Icon(
                               Icons.chevron_right_rounded,
                               size: 18,
                               color: Color(0xFF4F46E5),

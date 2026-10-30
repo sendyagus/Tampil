@@ -1,70 +1,24 @@
 import 'package:flutter/material.dart';
 
-class ActivityItem {
-  final IconData icon;
-  final Color iconBgColor;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final String tagText;
-  final Color tagBgColor;
-  final Color tagTextColor;
+import '../../../services/home_service.dart';
 
-  ActivityItem({
-    required this.icon,
-    required this.iconBgColor,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.tagText,
-    required this.tagBgColor,
-    required this.tagTextColor,
-  });
-}
-
+/// Daftar "Aktivitas terbaru" yang benar-benar dibaca dari Firestore:
+/// lesson yang baru diselesaikan (users/{uid}/lesson_progress) dan hasil tes
+/// (test_sessions). Baris lesson bisa diketuk untuk membuka lesson lagi.
 class AktivitasTerbaruWidget extends StatelessWidget {
+  final List<ActivityEntry> items;
+  final void Function(ActivityEntry item)? onItemTap;
   final VoidCallback? onViewAllPressed;
 
   const AktivitasTerbaruWidget({
     super.key,
+    this.items = const [],
+    this.onItemTap,
     this.onViewAllPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final List<ActivityItem> activities = [
-      ActivityItem(
-        icon: Icons.mic_none_rounded,
-        iconBgColor: const Color(0xFFEEF2FF),
-        iconColor: const Color(0xFF4F46E5),
-        title: 'Diskusi kelompok',
-        subtitle: 'Tes · Hari ini',
-        tagText: 'CI 72',
-        tagBgColor: const Color(0xFFEEF2FF),
-        tagTextColor: const Color(0xFF4F46E5),
-      ),
-      ActivityItem(
-        icon: Icons.check_rounded,
-        iconBgColor: const Color(0xFFDCFCE7),
-        iconColor: const Color(0xFF16A34A),
-        title: 'Lesson 2: Relevance',
-        subtitle: 'Selesai · Kemarin',
-        tagText: '+10 XP',
-        tagBgColor: const Color(0xFFCCFBF1),
-        tagTextColor: const Color(0xFF0D9488),
-      ),
-      ActivityItem(
-        icon: Icons.campaign_outlined,
-        iconBgColor: const Color(0xFFF5F3FF),
-        iconColor: const Color(0xFF8B5CF6),
-        title: 'Presentasi singkat',
-        subtitle: 'Tes · 2 Okt',
-        tagText: 'CI 66',
-        tagBgColor: const Color(0xFFEEF2FF),
-        tagTextColor: const Color(0xFF4F46E5),
-      ),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -110,92 +64,156 @@ class AktivitasTerbaruWidget extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            children: List.generate(activities.length, (index) {
-              final item = activities[index];
-              final isLast = index == activities.length - 1;
+          child: items.isEmpty
+              ? const _EmptyActivity()
+              : Column(
+                  children: List.generate(items.length, (index) {
+                    final item = items[index];
+                    final isLast = index == items.length - 1;
 
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Row(
+                    return Column(
                       children: [
-                        // Left Icon Container
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: item.iconBgColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            item.icon,
-                            color: item.iconColor,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-
-                        // Title & Subtitle Column
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
+                        InkWell(
+                          onTap: onItemTap == null ? null : () => onItemTap!(item),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                _LeadingIcon(kind: item.kind),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item.subtitle} · ${waktuRelatif(item.time)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item.subtitle,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Right Trailing Tag Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: item.tagBgColor,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            item.tagText,
-                            style: TextStyle(
-                              color: item.tagTextColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                                const SizedBox(width: 8),
+                                _Badge(kind: item.kind, text: item.badge),
+                              ],
                             ),
                           ),
                         ),
+                        if (!isLast)
+                          Divider(
+                            color: Colors.grey.shade100,
+                            height: 1,
+                            thickness: 1,
+                          ),
                       ],
-                    ),
-                  ),
-                  if (!isLast)
-                    Divider(
-                      color: Colors.grey.shade100,
-                      height: 1,
-                      thickness: 1,
-                    ),
-                ],
-              );
-            }),
-          ),
+                    );
+                  }),
+                ),
         ),
       ],
+    );
+  }
+}
+
+class _LeadingIcon extends StatelessWidget {
+  final String kind;
+
+  const _LeadingIcon({required this.kind});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLesson = kind == 'lesson';
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: isLesson ? const Color(0xFFDCFCE7) : const Color(0xFFEEF2FF),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        isLesson ? Icons.check_rounded : Icons.mic_none_rounded,
+        color: isLesson ? const Color(0xFF16A34A) : const Color(0xFF4F46E5),
+        size: 22,
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String kind;
+  final String text;
+
+  const _Badge({required this.kind, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final isLesson = kind == 'lesson';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isLesson ? const Color(0xFFCCFBF1) : const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isLesson ? const Color(0xFF0D9488) : const Color(0xFF4F46E5),
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyActivity extends StatelessWidget {
+  const _EmptyActivity();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 22, horizontal: 8),
+      child: Column(
+        children: [
+          Icon(
+            Icons.history_rounded,
+            size: 28,
+            color: Color(0xFF94A3B8),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Belum ada aktivitas',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF475569),
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Selesaikan lesson pertama di Roadmap atau lakukan tes bicara, '
+            'hasilnya akan muncul di sini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+        ],
+      ),
     );
   }
 }

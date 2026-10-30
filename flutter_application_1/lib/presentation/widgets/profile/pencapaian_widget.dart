@@ -40,13 +40,13 @@ class PencapaianWidget extends StatelessWidget {
         iconColor: const Color(0xFF00ACC1),
       ),
       AchievementItem(
-        title: 'Unit Selesai',
+        title: 'Modul Selesai',
         icon: Icons.hourglass_empty_rounded,
         iconBgColor: const Color(0xFFF3E8FF),
         iconColor: const Color(0xFF9333EA),
       ),
       AchievementItem(
-        title: 'Lompat Unit',
+        title: 'Lompat Modul',
         icon: Icons.rocket_launch_outlined,
         iconBgColor: const Color(0xFFF1F5F9),
         iconColor: const Color(0xFF94A3B8),

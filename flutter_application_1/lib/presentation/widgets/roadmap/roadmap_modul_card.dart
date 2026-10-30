@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
-class RoadmapUnitCard extends StatelessWidget {
-  final String unitNumber;
-  final String unitTitle;
+class RoadmapModulCard extends StatelessWidget {
+  final String modulNumber;
+  final String modulTitle;
   final int completedLessons;
   final int totalLessons;
   final int percentage;
-  final VoidCallback? onSkipUnitPressed;
+  final VoidCallback? onSkipModulPressed;
 
-  const RoadmapUnitCard({
+  const RoadmapModulCard({
     super.key,
-    this.unitNumber = 'UNIT 1',
-    this.unitTitle = 'Daily Communication',
+    this.modulNumber = 'MODUL 1',
+    this.modulTitle = 'Daily Communication',
     this.completedLessons = 4,
     this.totalLessons = 5,
     this.percentage = 80,
-    this.onSkipUnitPressed,
+    this.onSkipModulPressed,
   });
 
   @override
@@ -48,7 +48,7 @@ class RoadmapUnitCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Row: UNIT 1 Tag & Lewati Unit Button
+          // Top Row: MODUL 1 Tag & Lewati Modul Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -59,7 +59,7 @@ class RoadmapUnitCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  unitNumber,
+                  modulNumber,
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -69,7 +69,7 @@ class RoadmapUnitCard extends StatelessWidget {
                 ),
               ),
               InkWell(
-                onTap: onSkipUnitPressed,
+                onTap: onSkipModulPressed,
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -81,7 +81,7 @@ class RoadmapUnitCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text(
-                        'Lewati Unit',
+                        'Lewati Modul',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -102,9 +102,9 @@ class RoadmapUnitCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Unit Title
+          // Modul Title
           Text(
-            unitTitle,
+            modulTitle,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

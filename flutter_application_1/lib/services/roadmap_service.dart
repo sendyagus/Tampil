@@ -1,28 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Model Unit Belajar
-class UnitModel {
+// Model Modul Belajar (dulu bernama "unit")
+class ModulModel {
   final String id;
-  final String unitId;
+  final String modulId;
   final String nama;
   final String konteks;
   final int urutan;
   final String status;
 
-  UnitModel({
+  ModulModel({
     required this.id,
-    required this.unitId,
+    required this.modulId,
     required this.nama,
     required this.konteks,
     required this.urutan,
     required this.status,
   });
 
-  factory UnitModel.fromFirestore(DocumentSnapshot doc) {
+  factory ModulModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-    return UnitModel(
+    return ModulModel(
       id: doc.id,
-      unitId: data['unit_id'] ?? '',
+      modulId: (data['modul_id'] ?? data['unit_id'] ?? '').toString(),
       nama: data['nama'] ?? '',
       konteks: data['konteks'] ?? '',
       urutan: data['urutan'] is int ? data['urutan'] : 1,
@@ -35,7 +35,7 @@ class UnitModel {
 class LessonModel {
   final String id;
   final String lessonId;
-  final String unitId;
+  final String modulId;
   final String judul;
   final int urutan;
   final String targetAspek;
@@ -46,7 +46,7 @@ class LessonModel {
   LessonModel({
     required this.id,
     required this.lessonId,
-    required this.unitId,
+    required this.modulId,
     required this.judul,
     required this.urutan,
     required this.targetAspek,
@@ -60,7 +60,7 @@ class LessonModel {
     return LessonModel(
       id: doc.id,
       lessonId: data['lesson_id'] ?? '',
-      unitId: data['unit_id'] ?? '',
+      modulId: (data['modul_id'] ?? data['unit_id'] ?? '').toString(),
       judul: data['judul'] ?? '',
       urutan: data['urutan'] is int ? data['urutan'] : 1,
       targetAspek: data['target_aspek'] ?? '',
@@ -125,27 +125,27 @@ class LessonBlock {
 class RoadmapService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Mengambil daftar Unit yang berstatus published (disortir di memori tanpa perlu index Firebase)
-  Future<List<UnitModel>> getPublishedUnits() async {
+  // Mengambil daftar Modul yang berstatus published (disortir di memori tanpa perlu index Firebase)
+  Future<List<ModulModel>> getPublishedModuls() async {
     try {
       final snapshot = await _firestore
-          .collection('units')
+          .collection('modul')
           .where('status', isEqualTo: 'published')
           .get();
 
       final list = snapshot.docs
-          .map((doc) => UnitModel.fromFirestore(doc))
+          .map((doc) => ModulModel.fromFirestore(doc))
           .toList();
       list.sort((a, b) => a.urutan.compareTo(b.urutan));
       return list;
     } catch (e) {
-      print('Error get units: $e');
+      print('Error get moduls: $e');
       return [];
     }
   }
 
-  // Mengambil SEMUA lesson published lintas unit (untuk menghitung total
-  // lesson & mengelompokkan lesson per unit di layar Roadmap).
+  // Mengambil SEMUA lesson published lintas modul (untuk menghitung total
+  // lesson & mengelompokkan lesson per modul di layar Roadmap).
   Future<List<LessonModel>> getPublishedLessons() async {
     try {
       final snapshot = await _firestore
@@ -157,8 +157,8 @@ class RoadmapService {
           .map((doc) => LessonModel.fromFirestore(doc))
           .toList();
       list.sort((a, b) {
-        final byUnit = a.unitId.compareTo(b.unitId);
-        return byUnit != 0 ? byUnit : a.urutan.compareTo(b.urutan);
+        final byModul = a.modulId.compareTo(b.modulId);
+        return byModul != 0 ? byModul : a.urutan.compareTo(b.urutan);
       });
       return list;
     } catch (e) {
@@ -167,12 +167,50 @@ class RoadmapService {
     }
   }
 
-  // Mengambil daftar Lesson berdasarkan Unit (disortir di memori tanpa perlu index Firebase)
-  Future<List<LessonModel>> getLessonsByUnit(String unitId) async {
+  // ================= REALTIME (STREAM) =================
+  // Versi stream dipakai layar Roadmap agar data baru dari dashboard CMS
+  // (Sheet -> Sync -> Firestore) LANGSUNG tampil tanpa restart aplikasi.
+  // Disortir di memori, tanpa orderBy, sehingga tidak butuh index Firebase.
+
+  /// Stream daftar modul published, tersortir `urutan`.
+  Stream<List<ModulModel>> watchPublishedModuls() {
+    return _firestore
+        .collection('modul')
+        .where('status', isEqualTo: 'published')
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => ModulModel.fromFirestore(doc))
+              .toList();
+          list.sort((a, b) => a.urutan.compareTo(b.urutan));
+          return list;
+        });
+  }
+
+  /// Stream SEMUA lesson published lintas modul, tersortir modul lalu urutan.
+  Stream<List<LessonModel>> watchPublishedLessons() {
+    return _firestore
+        .collection('lessons')
+        .where('status', isEqualTo: 'published')
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((doc) => LessonModel.fromFirestore(doc))
+              .toList();
+          list.sort((a, b) {
+            final byModul = a.modulId.compareTo(b.modulId);
+            return byModul != 0 ? byModul : a.urutan.compareTo(b.urutan);
+          });
+          return list;
+        });
+  }
+
+  // Mengambil daftar Lesson berdasarkan Modul (disortir di memori tanpa perlu index Firebase)
+  Future<List<LessonModel>> getLessonsByModul(String modulId) async {
     try {
       final snapshot = await _firestore
           .collection('lessons')
-          .where('unit_id', isEqualTo: unitId)
+          .where('modul_id', isEqualTo: modulId)
           .where('status', isEqualTo: 'published')
           .get();
 
@@ -188,40 +226,40 @@ class RoadmapService {
   }
 
   // ==============================================================
-  // SEEDER OTOMATIS: Mengisi 3 Unit & 5 Lesson Sesuai PRD ke Firestore
+  // SEEDER OTOMATIS: Mengisi 3 Modul & 15 Lesson Sesuai PRD ke Firestore
   // ==============================================================
   Future<void> seedInitialData() async {
     try {
-      final unitCol = _firestore.collection('units');
+      final modulCol = _firestore.collection('modul');
       final lessonCol = _firestore.collection('lessons');
 
-      // 1. Cek jika data unit sudah ada agar tidak duplikat
-      final existingUnits = await unitCol.limit(1).get();
-      if (existingUnits.docs.isNotEmpty) {
-        print('Database units & lessons sudah terisi sebelumnya!');
+      // 1. Cek jika data modul sudah ada agar tidak duplikat
+      final existingModuls = await modulCol.limit(1).get();
+      if (existingModuls.docs.isNotEmpty) {
+        print('Database modul & lessons sudah terisi sebelumnya!');
         return;
       }
 
-      print('Sedang mengisi database units & lessons ke Firestore...');
+      print('Sedang mengisi database modul & lessons ke Firestore...');
 
-      // 2. Daftar 3 Unit sesuai PRD Halaman 11
-      final units = [
+      // 2. Daftar 3 Modul sesuai PRD Halaman 11
+      final moduls = [
         {
-          'unit_id': 'unit_01',
+          'modul_id': 'modul_01',
           'nama': 'Daily Communication',
           'konteks': 'Percakapan sehari-hari',
           'urutan': 1,
           'status': 'published',
         },
         {
-          'unit_id': 'unit_02',
+          'modul_id': 'modul_02',
           'nama': 'Peer Communication',
           'konteks': 'Diskusi dan kerja kelompok',
           'urutan': 2,
           'status': 'published',
         },
         {
-          'unit_id': 'unit_03',
+          'modul_id': 'modul_03',
           'nama': 'Public Speaking',
           'konteks': 'Presentasi kelas dan organisasi',
           'urutan': 3,
@@ -229,8 +267,8 @@ class RoadmapService {
         },
       ];
 
-      for (var u in units) {
-        await unitCol.doc(u['unit_id'] as String).set(u);
+      for (var m in moduls) {
+        await modulCol.doc(m['modul_id'] as String).set(m);
       }
 
       // 3. Daftar 5 Aspek Lesson sesuai PRD Halaman 11 & 14
@@ -248,14 +286,14 @@ class RoadmapService {
         },
       ];
 
-      // Buat 5 lesson untuk masing-masing unit (total 15 lesson)
-      for (var u in units) {
-        final unitId = u['unit_id'] as String;
+      // Buat 5 lesson untuk masing-masing modul (total 15 lesson)
+      for (var m in moduls) {
+        final modulId = m['modul_id'] as String;
         for (int i = 0; i < aspekList.length; i++) {
-          final lessonId = '${unitId}_lesson_0${i + 1}';
+          final lessonId = '${modulId}_lesson_0${i + 1}';
           await lessonCol.doc(lessonId).set({
             'lesson_id': lessonId,
-            'unit_id': unitId,
+            'modul_id': modulId,
             'judul': aspekList[i]['judul'],
             'urutan': i + 1,
             'target_aspek': aspekList[i]['aspek'],
@@ -266,7 +304,7 @@ class RoadmapService {
       }
 
       print(
-        '🎉 SUKSES! 3 Unit dan 15 Lesson berhasil masuk ke Cloud Firestore!',
+        '🎉 SUKSES! 3 Modul dan 15 Lesson berhasil masuk ke Cloud Firestore!',
       );
     } catch (e) {
       print('❌ Gagal seeder Firestore: $e');
