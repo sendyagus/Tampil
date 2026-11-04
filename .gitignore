@@ -47,3 +47,13 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+server/data/*.wav
+server/data/*.webm
+server/data/*.m4a
+server/data/*.mp3
+server/debug_transkrip.log

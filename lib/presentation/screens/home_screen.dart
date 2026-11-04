@@ -57,7 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header (Avatar, Greeting, Bell)
-              HeaderWidget(userName: displayName, greeting: 'Selamat datang'),
+              HeaderWidget(
+                userName: displayName,
+                greeting: 'Selamat datang',
+                avatarUrl: (userData?['photo_url'] as String?)?.isNotEmpty == true
+                    ? userData!['photo_url'] as String
+                    : ((userData?['foto_url'] as String?)?.isNotEmpty == true
+                        ? userData!['foto_url'] as String
+                        : authService.currentUser?.photoURL),
+                onAvatarTap: () {
+                  setState(() => _currentNavIndex = 3);
+                },
+              ),
               const SizedBox(height: 20),
 
               // 2. Active Unit / Hero Card

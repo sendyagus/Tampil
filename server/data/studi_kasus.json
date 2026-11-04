@@ -1,0 +1,147 @@
+
+[
+  {
+    "id": "proyek_terlambat",
+    "judul": "Proyek Terlambat",
+    "situasi": "Kamu bertanggung jawab atas sebuah proyek kelompok yang mengalami keterlambatan.",
+    "tugas": "Jelaskan penyebab keterlambatan, langkah penyelesaian, dan rencana berikutnya.",
+    "poin": [
+      {
+        "nama": "Menjelaskan kondisi proyek",
+        "kataKunci": ["proyek", "keterlambatan", "terlambat", "belum selesai"]
+      },
+      {
+        "nama": "Menyebutkan penyebab",
+        "kataKunci": ["kendala", "hambatan", "penyebab", "masalah"]
+      },
+      {
+        "nama": "Menjelaskan langkah penyelesaian",
+        "kataKunci": ["solusi", "menyelesaikan", "langkah", "perbaikan"]
+      },
+      {
+        "nama": "Menyampaikan rencana berikutnya",
+        "kataKunci": ["target", "jadwal baru", "rencana", "deadline"]
+      }
+    ]
+  },
+  {
+    "id": "wawancara_kerja",
+    "judul": "Wawancara Kerja",
+    "situasi": "Kamu sedang mengikuti wawancara kerja dan diminta memperkenalkan diri.",
+    "tugas": "Perkenalkan diri, jelaskan kemampuan, pengalaman, dan alasan melamar.",
+    "poin": [
+      {
+        "nama": "Memperkenalkan diri",
+        "kataKunci": ["nama saya", "perkenalkan", "saya adalah"]
+      },
+      {
+        "nama": "Menjelaskan kemampuan",
+        "kataKunci": ["kemampuan", "keahlian", "mampu", "keterampilan"]
+      },
+      {
+        "nama": "Menjelaskan pengalaman",
+        "kataKunci": ["pengalaman", "pernah", "sebelumnya"]
+      },
+      {
+        "nama": "Menyampaikan alasan melamar",
+        "kataKunci": ["melamar", "tertarik", "ingin bergabung", "alasan"]
+      }
+    ]
+  },
+  {
+    "id": "menawarkan_produk",
+    "judul": "Menawarkan Produk",
+    "situasi": "Kamu ingin menawarkan produk kepada calon pelanggan.",
+    "tugas": "Jelaskan produk, manfaat, keunggulan, dan ajakan untuk mencoba.",
+    "poin": [
+      {
+        "nama": "Memperkenalkan produk",
+        "kataKunci": ["produk", "memperkenalkan", "menawarkan"]
+      },
+      {
+        "nama": "Menjelaskan manfaat",
+        "kataKunci": ["manfaat", "berguna", "membantu", "memudahkan"]
+      },
+      {
+        "nama": "Menyebutkan keunggulan",
+        "kataKunci": ["keunggulan", "kelebihan", "unggul", "berbeda"]
+      },
+      {
+        "nama": "Mengajak pelanggan mencoba",
+        "kataKunci": ["mencoba", "silakan coba", "tertarik", "pesan"]
+      }
+    ]
+  },
+  {
+    "id": "menolak_tugas_tambahan",
+    "judul": "Menolak Tugas Tambahan",
+    "situasi": "Rekan kerja meminta kamu mengambil tugas tambahan, tetapi kamu sedang memiliki banyak pekerjaan.",
+    "tugas": "Tolak dengan sopan, jelaskan alasan, dan jika memungkinkan berikan alternatif.",
+    "poin": [
+      {
+        "nama": "Menghargai permintaan",
+        "kataKunci": ["terima kasih", "makasih", "menghargai", "sudah percaya"]
+      },
+      {
+        "nama": "Menjelaskan alasan",
+        "kataKunci": ["jadwal padat", "banyak pekerjaan", "prioritas", "sedang sibuk"]
+      },
+      {
+        "nama": "Menolak dengan jelas dan sopan",
+        "kataKunci": ["tidak bisa", "tidak sanggup", "maaf", "belum bisa"]
+      },
+      {
+        "nama": "Memberikan alternatif",
+        "kataKunci": ["lain kali", "minggu depan", "membantu nanti", "alternatif"]
+      }
+    ]
+  },
+  {
+    "id": "menjaga_lingkungan_kampus",
+    "judul": "Ajakan Menjaga Lingkungan Kampus",
+    "situasi": "Kamu mengajak teman-teman untuk menjaga kebersihan lingkungan kampus.",
+    "tugas": "Jelaskan masalah, dampak, tindakan yang dapat dilakukan, dan ajakan.",
+    "poin": [
+      {
+        "nama": "Menjelaskan masalah lingkungan",
+        "kataKunci": ["sampah", "kotor", "lingkungan", "kebersihan"]
+      },
+      {
+        "nama": "Menjelaskan dampak",
+        "kataKunci": ["dampak", "penyakit", "banjir", "tidak nyaman"]
+      },
+      {
+        "nama": "Memberikan solusi",
+        "kataKunci": ["membuang sampah", "tempat sampah", "membersihkan", "daur ulang"]
+      },
+      {
+        "nama": "Mengajak teman bertindak",
+        "kataKunci": ["mari", "ayo", "bersama", "mengajak"]
+      }
+    ]
+  },
+  {
+    "id": "keluhan_pelanggan",
+    "judul": "Keluhan Pelanggan",
+    "situasi": "Seorang pelanggan mengeluhkan layanan yang tidak sesuai harapan.",
+    "tugas": "Tanggapi dengan empati, minta maaf, jelaskan solusi, dan tindak lanjut.",
+    "poin": [
+      {
+        "nama": "Mengakui keluhan",
+        "kataKunci": ["memahami", "keluhan", "mengerti", "masalah"]
+      },
+      {
+        "nama": "Meminta maaf",
+        "kataKunci": ["mohon maaf", "kami minta maaf", "maaf"]
+      },
+      {
+        "nama": "Menawarkan solusi",
+        "kataKunci": ["solusi", "memperbaiki", "mengganti", "menangani"]
+      },
+      {
+        "nama": "Menjelaskan tindak lanjut",
+        "kataKunci": ["menindaklanjuti", "segera", "menghubungi", "konfirmasi"]
+      }
+    ]
+  }
+]

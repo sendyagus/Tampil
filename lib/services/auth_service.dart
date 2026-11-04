@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -71,6 +72,43 @@ class AuthService {
   }
 
   // Menambahkan XP ke akun user di Cloud Firestore
+
+  // Update data profil user di Cloud Firestore
+  Future<void> updateUserProfile({
+    String? nama,
+    String? jenisKelamin,
+    String? peran,
+    String? bio,
+    String? photoUrl,
+    String? tujuan,
+  }) async {
+    final uid = currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final updateData = <String, dynamic>{};
+      if (nama != null && nama.trim().isNotEmpty) updateData['nama'] = nama.trim();
+      if (jenisKelamin != null) updateData['jenis_kelamin'] = jenisKelamin;
+      if (peran != null) updateData['peran'] = peran;
+      if (bio != null) updateData['bio'] = bio.trim();
+      if (photoUrl != null) updateData['photo_url'] = photoUrl;
+      if (tujuan != null) updateData['tujuan'] = [tujuan];
+
+      if (updateData.isNotEmpty) {
+        updateData['updated_at'] = FieldValue.serverTimestamp();
+        await _firestore.collection('users').doc(uid).update(updateData);
+        if (nama != null && nama.trim().isNotEmpty && currentUser != null) {
+          try {
+            await currentUser!.updateDisplayName(nama.trim());
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('Error update user profile: ');
+      rethrow;
+    }
+  }
+
   Future<void> addXp(int xp) async {
     final uid = currentUser?.uid;
     if (uid == null) return;
