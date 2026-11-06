@@ -92,20 +92,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // Pengecualian alur daftar: pendaftaran lewat akun Google langsung masuk ke
+  // beranda (tanpa halaman login), dan username diambil dari nama akun Google.
   Future<void> _daftarWithGoogle() async {
     setState(() => _isLoading = true);
     try {
       final credential = await _authService.signInWithGoogle();
       if (credential != null && credential.user != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pendaftaran dengan Google berhasil!'),
+          SnackBar(
+            content: Text(
+              'Pendaftaran dengan Google berhasil! Selamat datang, ${_authService.userDisplayName}.',
+            ),
             backgroundColor: Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
         );
       }
     } catch (e) {

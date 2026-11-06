@@ -2,6 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'services/roadmap_service.dart';
 
@@ -9,6 +10,15 @@ import 'presentation/screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Konfigurasi opsional (mis. GOOGLE_SERVER_CLIENT_ID untuk login Google di
+  // Android). Bila file .env belum ada, aplikasi tetap jalan dan memakai
+  // nilai bawaan dari google-services.json.
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('File .env tidak terbaca: $e');
+  }
 
   // Inisialisasi Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

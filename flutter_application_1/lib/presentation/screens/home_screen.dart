@@ -5,7 +5,6 @@ import '../../services/home_service.dart';
 import '../../services/roadmap_service.dart';
 import '../widgets/home/header_widget.dart';
 import '../widgets/home/hero_card_widget.dart';
-import '../widgets/home/cms_banner_widget.dart';
 import '../widgets/home/daily_challenge_widget.dart';
 import '../widgets/home/modul_belajar_widget.dart';
 import '../widgets/home/aktivitas_terbaru_widget.dart';
@@ -132,9 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onContinuePressed: heroAction,
           ),
           const SizedBox(height: 18),
-
-          // 2b. CMS Banner (konten dikelola lewat dashboard admin)
-          const CmsBannerWidget(),
 
           // 3. Daily Challenge Banner Card -> buka tab Test
           DailyChallengeWidget(

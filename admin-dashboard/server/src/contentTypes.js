@@ -4,14 +4,9 @@
 // `image` menyimpan LINK gambar dari Google Drive (bukan file-nya).
 
 export const contentTypes = {
-  hero: {
-    label: 'Hero Card / Banner',
-    collection: 'cms_hero',
-    sheet: 'Hero',
-    idField: 'id',
-    fields: ['id', 'title', 'subtitle', 'imageUrl', 'ctaText', 'urutan', 'status'],
-    numericFields: ['urutan'],
-  },
+  // Catatan: tipe 'hero' (Hero Card / Banner, tab Hero, collection cms_hero)
+  // sudah dihapus. Kartu Hero di beranda kini diisi progres lesson user,
+  // bukan konten yang dikelola admin.
   modul: {
     label: 'Modul Belajar',
     collection: 'modul',

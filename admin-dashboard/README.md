@@ -49,7 +49,6 @@ admin-dashboard/
 
 | Kunci | Label | Tab Spreadsheet | Collection Firestore |
 |-------|-------|-----------------|----------------------|
-| `hero` | Hero Card / Banner | Hero | `cms_hero` |
 | `modul` | Modul Belajar | ModulBelajar | `modul` |
 | `lesson` | Lesson / Langkah Roadmap | Lesson | `lessons` |
 | `dailyChallenge` | Daily Challenge | DailyChallenge | `cms_daily_challenge` |
@@ -58,6 +57,9 @@ admin-dashboard/
 > `modul` & `lesson` memakai collection `modul` dan `lessons` yang dibaca aplikasi
 > (lihat `lib/services/roadmap_service.dart`). Dulu tipe ini bernama `unit`
 > dengan collection `units` dan tab `UnitBelajar` — sudah diganti menjadi **MODUL**.
+>
+> Tipe `hero` (Hero Card / Banner) sudah **dihapus** dari dashboard. Kartu Hero di
+> beranda sekarang menampilkan progres lesson user, bukan konten kelolaan admin.
 
 ### Konfigurasi form di `contentTypes.js`
 
@@ -149,8 +151,10 @@ Buka `http://localhost:5173`, login dengan akun admin.
 ## Integrasi ke Aplikasi Flutter
 
 Sudah disiapkan:
-- `lib/services/cms_content_service.dart` — baca konten CMS dari Firestore.
-- `lib/presentation/widgets/home/cms_banner_widget.dart` — banner hero dari CMS.
+- `lib/services/cms_content_service.dart` — baca konten CMS dari Firestore
+  (`watchDailyChallenge()`, `watchOnboarding()`).
+- Kartu Hero di beranda (`lib/presentation/widgets/home/hero_card_widget.dart`)
+  diisi progres lesson user, bukan lagi konten CMS.
 - Ditampilkan di beranda (`home_screen.dart`).
 
 Cara memakai di tempat lain:

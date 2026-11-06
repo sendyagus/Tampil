@@ -8,7 +8,6 @@ class CmsContent {
   final String title;
   final String subtitle;
   final String imageUrl;
-  final String ctaText;
   final int urutan;
   final String status;
 
@@ -17,7 +16,6 @@ class CmsContent {
     required this.title,
     required this.subtitle,
     required this.imageUrl,
-    required this.ctaText,
     required this.urutan,
     required this.status,
   });
@@ -34,7 +32,6 @@ class CmsContent {
       title: title,
       subtitle: subtitle,
       imageUrl: (d['imageUrl'] ?? '') as String,
-      ctaText: (d['ctaText'] ?? '') as String,
       urutan: d['urutan'] is int ? d['urutan'] as int : int.tryParse('${d['urutan']}') ?? 0,
       status: (d['status'] ?? 'published') as String,
     );
@@ -46,7 +43,6 @@ class CmsContentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Collection Firestore per tipe konten (harus sama dengan backend CMS).
-  static const heroCollection = 'cms_hero';
   static const dailyChallengeCollection = 'cms_daily_challenge';
   static const onboardingCollection = 'cms_onboarding';
 
@@ -60,26 +56,6 @@ class CmsContentService {
           list.sort((a, b) => a.urutan.compareTo(b.urutan));
           return list;
         });
-  }
-
-  /// Daftar banner/hero yang sudah publish, terurut.
-  Stream<List<CmsContent>> watchHero() => _streamPublished(heroCollection);
-
-  /// Banner hero pertama (untuk satu kartu di beranda). Null jika kosong.
-  Future<CmsContent?> getFirstHero() async {
-    try {
-      final snap = await _firestore
-          .collection(heroCollection)
-          .where('status', isEqualTo: 'published')
-          .limit(5)
-          .get();
-      if (snap.docs.isEmpty) return null;
-      final list = snap.docs.map((d) => CmsContent.fromDoc(d)).toList();
-      list.sort((a, b) => a.urutan.compareTo(b.urutan));
-      return list.first;
-    } catch (e) {
-      return null;
-    }
   }
 
   Stream<List<CmsContent>> watchDailyChallenge() =>

@@ -7,7 +7,10 @@ import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  // Email hasil pendaftaran, otomatis terisi supaya user tinggal masukkan sandi.
+  final String? prefillEmail;
+
+  const LoginScreen({super.key, this.prefillEmail});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -22,6 +25,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final email = (widget.prefillEmail ?? '').trim();
+    if (email.isNotEmpty) {
+      _emailController.text = email;
+    }
+  }
 
   @override
   void dispose() {

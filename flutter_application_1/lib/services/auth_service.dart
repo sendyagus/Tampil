@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'roadmap_service.dart';
 
@@ -36,14 +39,17 @@ class AuthService {
 
     // Deteksi provider (Google atau Email)
     final isGoogle = user.providerData.any((p) => p.providerId == 'google.com');
+    // Nama yang dipakai sebagai username: parameter eksplisit, lalu nama Google.
+    final namaGoogle = (fullName ?? user.displayName ?? '').trim();
 
     if (!snapshot.exists) {
       // Jika user baru pertama kali login/daftar, buat data awal sesuai PRD
       await userDoc.set({
         'user_id': user.uid,
         'nama':
-            fullName ??
-            (user.displayName ?? (user.email?.split('@').first ?? 'User')),
+            namaGoogle.isNotEmpty
+            ? namaGoogle
+            : (user.email?.split('@').first ?? 'User'),
         'email': user.email ?? '',
         'auth_provider': isGoogle ? 'google' : 'email',
         'tahun_lahir': birthYear ?? 2004,
@@ -67,8 +73,31 @@ class AuthService {
         'last_login_at': FieldValue.serverTimestamp(),
       });
     } else {
-      // Jika dokumen sudah ada, update waktu login terakhir
-      await userDoc.update({'last_login_at': FieldValue.serverTimestamp()});
+      // Jika dokumen sudah ada, update waktu login terakhir.
+      final updates = <String, dynamic>{
+        'last_login_at': FieldValue.serverTimestamp(),
+      };
+
+      // Login lewat Google: username diambil dari nama akun Google-nya.
+      // Nama lama yang masih placeholder (kosong, 'User', atau prefix email)
+      // selalu diganti, dan untuk akun Google nama dari Google dianggap paling
+      // akurat sehingga ikut diperbarui bila pengguna ganti nama di Google.
+      final storedName = (snapshot.data()?['nama'] ?? '').toString().trim();
+      final emailPrefix = (user.email ?? '').split('@').first.trim();
+      final storedProvider = (snapshot.data()?['auth_provider'] ?? '').toString();
+      final bool perluGantiNama =
+          isGoogle &&
+          namaGoogle.isNotEmpty &&
+          storedName != namaGoogle &&
+          (storedName.isEmpty ||
+              storedName == 'User' ||
+              storedName == emailPrefix ||
+              storedProvider == 'google');
+      if (perluGantiNama) {
+        updates['nama'] = namaGoogle;
+      }
+
+      await userDoc.update(updates);
     }
   }
 
@@ -163,33 +192,121 @@ class AuthService {
     return credential;
   }
 
-  // Sign In dengan Google (Pop-up Akun Google Resmi Firebase)
+  // ============================ LOGIN GOOGLE ============================
+
+  // `GoogleSignIn.instance.initialize()` wajib dipanggil tepat satu kali.
+  static bool _googleSignInInitialized = false;
+
+  // Platform yang memakai google_sign_in (popup Firebase hanya untuk web).
+  bool get _isNativeGooglePlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
+  /// Client ID server (tipe "Web application" di GCP) dari `.env`. Di Android
+  /// nilai ini yang membuat google_sign_in menerbitkan ID token untuk Firebase.
+  String? get _googleServerClientId {
+    if (!dotenv.isInitialized) return null;
+    final value = (dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ?? '').trim();
+    return value.isEmpty ? null : value;
+  }
+
+  /// Sign In dengan Google.
+  /// - Web: pop-up akun Google bawaan Firebase (`signInWithPopup`).
+  /// - Android/iOS/macOS: `google_sign_in` lalu tukar token ke Firebase.
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      googleProvider.addScope('email');
-      googleProvider.addScope('profile');
-
-      // Membuka pop-up login Google bawaan Firebase
-      final UserCredential credential = await _auth.signInWithPopup(
-        googleProvider,
-      );
+      final UserCredential credential = _isNativeGooglePlatform
+          ? await _signInWithGoogleNative()
+          : await _auth.signInWithPopup(
+              GoogleAuthProvider()
+                ..addScope('email')
+                ..addScope('profile'),
+            );
 
       if (credential.user != null) {
-        // Otomatis sinkronkan profil user ke Firestore
+        // Username otomatis diambil dari nama akun Google.
         await _syncUserProfile(
           credential.user!,
           fullName: credential.user!.displayName,
         );
-        // Pastikan database modul & lessons siap
+        // Pastikan database modul & lessons siap.
         await RoadmapService().seedInitialData();
       }
 
       return credential;
-    } catch (e) {
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw Exception('Login Google dibatalkan.');
+      }
+      print('Error Google Sign-In: ${e.code} - ${e.description}');
+      throw Exception(
+        'Login Google gagal (${e.code.name}). Pastikan provider Google sudah '
+        'diaktifkan di Firebase Console dan SHA-1/client ID aplikasi terdaftar.',
+      );
+    } on FirebaseAuthException catch (e) {
+      final unsupported =
+          e.code == 'unsupported-operation' ||
+          e.code == 'operation-not-allowed';
+      if (unsupported) {
+        throw Exception(
+          'Login Google belum tersedia di platform ini. Silakan aktifkan '
+          'provider Google di Firebase Console atau lanjut dengan email.',
+        );
+      }
       print('Error Google Sign-In: $e');
       rethrow;
+    } catch (e) {
+      print('Error Google Sign-In: $e');
+      if (e is UnsupportedError) {
+        throw Exception(
+          'Login Google dengan pop-up hanya didukung di web. Jalankan lewat '
+          'browser/Android atau lanjut dengan email.',
+        );
+      }
+      rethrow;
     }
+  }
+
+  /// Alur Google Sign-In untuk aplikasi native (Android/iOS/macOS).
+  Future<UserCredential> _signInWithGoogleNative() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+
+    if (!_googleSignInInitialized) {
+      await googleSignIn.initialize(serverClientId: _googleServerClientId);
+      _googleSignInInitialized = true;
+    }
+
+    if (!googleSignIn.supportsAuthenticate()) {
+      throw Exception(
+        'Google Sign-In belum mendukung platform ini. Lanjut dengan email, ya.',
+      );
+    }
+
+    // Membuka pemilih akun Google resmi dari sistem.
+    final GoogleSignInAccount account = await googleSignIn.authenticate();
+    final String? idToken = account.authentication.idToken;
+
+    if (idToken == null) {
+      throw Exception(
+        'Google tidak mengirim ID token. Isi GOOGLE_SERVER_CLIENT_ID di file '
+        '.env dan tambahkan SHA-1 aplikasi ke Firebase Console.',
+      );
+    }
+
+    // Access token diambil hanya bila tersedia tanpa prompt tambahan;
+    // Firebase menerima ID token saja untuk provider Google.
+    final GoogleSignInClientAuthorization? authorization = await account
+        .authorizationClient
+        .authorizationForScopes(const ['email', 'profile']);
+
+    return _auth.signInWithCredential(
+      GoogleAuthProvider.credential(
+        idToken: idToken,
+        accessToken: authorization?.accessToken,
+      ),
+    );
   }
 
   // Sign Out

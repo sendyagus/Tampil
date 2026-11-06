@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../utils/transition_utils.dart';
 import '../home_screen.dart';
+import 'login_screen.dart';
 
 class ConsentScreen extends StatefulWidget {
   final String? email;
@@ -43,18 +44,24 @@ class _ConsentScreenState extends State<ConsentScreen> {
           fullName: widget.fullName,
         );
 
+        // Alur baru: akun sudah dibuat, tapi user belum masuk otomatis.
+        // Sesi hasil pendaftaran ditutup agar login dilakukan lewat halaman Login.
+        await _authService.signOut();
+
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pendaftaran berhasil! Selamat datang di TAMPIL.'),
+            content: Text(
+              'Pendaftaran berhasil! Silakan masuk dengan email dan kata sandimu.',
+            ),
             backgroundColor: Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
         );
 
         Navigator.of(context).pushAndRemoveUntil(
-          DissolvePageRoute(builder: (_) => const HomeScreen()),
+          DissolvePageRoute(builder: (_) => LoginScreen(prefillEmail: widget.email)),
           (route) => false,
         );
       } catch (e) {
