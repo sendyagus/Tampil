@@ -9,6 +9,7 @@ import '../widgets/home/daily_challenge_widget.dart';
 import '../widgets/home/unit_belajar_widget.dart';
 import '../widgets/home/aktivitas_terbaru_widget.dart';
 import '../widgets/home/custom_bottom_nav.dart';
+import '../utils/transition_utils.dart';
 import 'test_screen.dart';
 import 'profile_screen.dart';
 import 'roadmap_screen.dart';
@@ -56,7 +57,18 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Header (Avatar, Greeting, Bell)
-              HeaderWidget(userName: displayName, greeting: 'Selamat datang'),
+              HeaderWidget(
+                userName: displayName,
+                greeting: 'Selamat datang',
+                avatarUrl: (userData?['photo_url'] as String?)?.isNotEmpty == true
+                    ? userData!['photo_url'] as String
+                    : ((userData?['foto_url'] as String?)?.isNotEmpty == true
+                        ? userData!['foto_url'] as String
+                        : authService.currentUser?.photoURL),
+                onAvatarTap: () {
+                  setState(() => _currentNavIndex = 3);
+                },
+              ),
               const SizedBox(height: 20),
 
               // 2. Active Unit / Hero Card
@@ -70,12 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 currentXp: currentXp,
                 targetXp: 40,
                 onContinuePressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const LessonScreen(
-                        lessonNumber: 6,
-                        lessonTag: 'Response',
-                      ),
+                  context.pushDissolve(
+                    (_) => const LessonScreen(
+                      lessonNumber: 6,
+                      lessonTag: 'Response',
                     ),
                   );
                 },
@@ -133,8 +143,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: IndexedStack(
-          index: _currentNavIndex,
+        // TabDissolve menjaga state seluruh tab (seperti IndexedStack)
+        // namun menggantinya dengan efek smooth dissolve; Bottom Navigation
+        // sengaja berada di luar sehingga tidak ikut memudar.
+        child: TabDissolve(
+          currentIndex: _currentNavIndex,
           children: [
             _buildHomeContent(),
             const RoadmapScreen(),

@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
 import '../home_screen.dart';
+import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -47,10 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _authService.signInWithEmail(
-        email: email,
-        password: password,
-      );
+      await _authService.signInWithEmail(email: email, password: password);
 
       if (!mounted) return;
 
@@ -62,14 +60,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Gagal login: ${e.toString().replaceAll("Exception:", "").trim()}'),
+          content: Text(
+            'Gagal login: ${e.toString().replaceAll("Exception:", "").trim()}',
+          ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -82,12 +80,29 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _loginWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await _authService.signInWithGoogle();
+      final credential = await _authService.signInWithGoogle();
+
+      if (credential != null && credential.user != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login Google berhasil!'),
+            backgroundColor: Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Otomatis berpindah ke HomeScreen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal login Google: $e'),
+            content: Text(
+              'Gagal login Google: ${e.toString().replaceAll("Exception:", "").trim()}',
+            ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -99,12 +114,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showForgotPasswordDialog() {
-    final resetEmailController = TextEditingController(text: _emailController.text.trim());
+    final resetEmailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Reset Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Reset Kata Sandi',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +140,9 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: InputDecoration(
                 hintText: 'nama@email.com',
                 prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ],
@@ -140,7 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Link reset kata sandi telah dikirim ke email Anda.'),
+                      content: Text(
+                        'Link reset kata sandi telah dikirim ke email Anda.',
+                      ),
                       backgroundColor: Color(0xFF10B981),
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -161,7 +185,9 @@ class _LoginScreenState extends State<LoginScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: _primaryBlue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Kirim Link'),
           ),
@@ -171,9 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _goToRegister() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-    );
+    context.pushDissolve((_) => const RegisterScreen());
   }
 
   @override
@@ -332,28 +356,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 height: 54,
                 child: OutlinedButton.icon(
-                  onPressed: _loginWithGoogle,
+                  onPressed: _isLoading ? null : _loginWithGoogle,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF334155),
-                    side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                    side: const BorderSide(
+                      color: Color(0xFFE2E8F0),
+                      width: 1.5,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  icon: const Text(
-                    'G',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF4285F4),
-                    ),
+                  icon: Image.asset(
+                    'assets/images/google_logo.png',
+                    width: 22,
+                    height: 22,
+                    fit: BoxFit.contain,
                   ),
                   label: const Text(
                     'Lanjutkan dengan Google',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -376,7 +398,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: _primaryBlue,
                           fontWeight: FontWeight.w700,
                         ),
-                        recognizer: TapGestureRecognizer()..onTap = _goToRegister,
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = _goToRegister,
                       ),
                     ],
                   ),

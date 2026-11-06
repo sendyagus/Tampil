@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'roadmap_service.dart';
 
 class AuthService {
@@ -33,6 +35,9 @@ class AuthService {
     final userDoc = _firestore.collection('users').doc(user.uid);
     final snapshot = await userDoc.get();
 
+    // Deteksi provider (Google atau Email)
+    final isGoogle = user.providerData.any((p) => p.providerId == 'google.com');
+
     if (!snapshot.exists) {
       // Jika user baru pertama kali login/daftar, buat data awal sesuai PRD
       await userDoc.set({
@@ -41,7 +46,7 @@ class AuthService {
             fullName ??
             (user.displayName ?? (user.email?.split('@').first ?? 'User')),
         'email': user.email ?? '',
-        'auth_provider': 'email',
+        'auth_provider': isGoogle ? 'google' : 'email',
         'tahun_lahir': birthYear ?? 2004,
         'is_adult': true,
         'status': 'active',
@@ -67,6 +72,43 @@ class AuthService {
   }
 
   // Menambahkan XP ke akun user di Cloud Firestore
+
+  // Update data profil user di Cloud Firestore
+  Future<void> updateUserProfile({
+    String? nama,
+    String? jenisKelamin,
+    String? peran,
+    String? bio,
+    String? photoUrl,
+    String? tujuan,
+  }) async {
+    final uid = currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final updateData = <String, dynamic>{};
+      if (nama != null && nama.trim().isNotEmpty) updateData['nama'] = nama.trim();
+      if (jenisKelamin != null) updateData['jenis_kelamin'] = jenisKelamin;
+      if (peran != null) updateData['peran'] = peran;
+      if (bio != null) updateData['bio'] = bio.trim();
+      if (photoUrl != null) updateData['photo_url'] = photoUrl;
+      if (tujuan != null) updateData['tujuan'] = [tujuan];
+
+      if (updateData.isNotEmpty) {
+        updateData['updated_at'] = FieldValue.serverTimestamp();
+        await _firestore.collection('users').doc(uid).update(updateData);
+        if (nama != null && nama.trim().isNotEmpty && currentUser != null) {
+          try {
+            await currentUser!.updateDisplayName(nama.trim());
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('Error update user profile: ');
+      rethrow;
+    }
+  }
+
   Future<void> addXp(int xp) async {
     final uid = currentUser?.uid;
     if (uid == null) return;
@@ -128,9 +170,33 @@ class AuthService {
     return credential;
   }
 
-  // Sign In dengan Google (placeholder)
-  Future<bool> signInWithGoogle() async {
-    return false;
+  // Sign In dengan Google (Pop-up Akun Google Resmi Firebase)
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      googleProvider.addScope('email');
+      googleProvider.addScope('profile');
+
+      // Membuka pop-up login Google bawaan Firebase
+      final UserCredential credential = await _auth.signInWithPopup(
+        googleProvider,
+      );
+
+      if (credential.user != null) {
+        // Otomatis sinkronkan profil user ke Firestore
+        await _syncUserProfile(
+          credential.user!,
+          fullName: credential.user!.displayName,
+        );
+        // Pastikan database units & lessons siap
+        await RoadmapService().seedInitialData();
+      }
+
+      return credential;
+    } catch (e) {
+      print('Error Google Sign-In: $e');
+      rethrow;
+    }
   }
 
   // Sign Out
@@ -154,5 +220,44 @@ class AuthService {
       return email.split('@').first;
     }
     return 'User';
+  }
+
+  // ============================ PROGRES LESSON ============================
+
+  /// Tandai satu lesson selesai untuk user aktif (membuka lesson berikutnya).
+  Future<void> markLessonCompleted({
+    required String lessonId,
+    String unitId = '',
+  }) async {
+    final uid = currentUser?.uid;
+    if (uid == null || lessonId.isEmpty) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('lesson_progress')
+          .doc(lessonId)
+          .set({
+            'lesson_id': lessonId,
+            'unit_id': unitId,
+            'completed_at': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      print('Gagal menyimpan progres lesson: $e');
+    }
+  }
+
+  /// Stream berisi semua lesson_id yang sudah diselesaikan user aktif.
+  Stream<Set<String>> get completedLessonsStream {
+    return _auth.authStateChanges().asyncExpand((user) {
+      final uid = user?.uid ?? _auth.currentUser?.uid;
+      if (uid == null) return const Stream.empty();
+      return _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('lesson_progress')
+          .snapshots()
+          .map((snap) => snap.docs.map((d) => d.id).toSet());
+    });
   }
 }

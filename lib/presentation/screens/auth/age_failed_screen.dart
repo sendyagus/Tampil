@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../utils/transition_utils.dart';
 import 'login_screen.dart';
 
 class AgeFailedScreen extends StatelessWidget {
@@ -73,8 +74,7 @@ class AgeFailedScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                          builder: (_) => const LoginScreen()),
+                      DissolvePageRoute(builder: (_) => const LoginScreen()),
                       (route) => false,
                     );
                   },

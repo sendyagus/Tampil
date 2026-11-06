@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class ProfileHeaderCard extends StatelessWidget {
@@ -10,6 +11,7 @@ class ProfileHeaderCard extends StatelessWidget {
   final int streakDays;
   final int totalXp;
   final int completedTests;
+  final String? avatarUrl;
   final VoidCallback? onSettingsPressed;
   final VoidCallback? onEditAvatarPressed;
 
@@ -24,9 +26,25 @@ class ProfileHeaderCard extends StatelessWidget {
     this.streakDays = 5,
     this.totalXp = 260,
     this.completedTests = 12,
+    this.avatarUrl,
     this.onSettingsPressed,
     this.onEditAvatarPressed,
   });
+
+  ImageProvider _getAvatarProvider(String? url) {
+    if (url != null && url.startsWith('data:image')) {
+      try {
+        final base64Str = url.split(',').last;
+        return MemoryImage(base64Decode(base64Str));
+      } catch (_) {}
+    }
+    if (url != null && url.isNotEmpty) {
+      return NetworkImage(url);
+    }
+    return const NetworkImage(
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +107,9 @@ class ProfileHeaderCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Profile Avatar with Edit Icon Badge
-              Stack(
+              GestureDetector(
+                onTap: onEditAvatarPressed,
+                child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
                   Container(
@@ -104,36 +124,32 @@ class ProfileHeaderCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const CircleAvatar(
+                    child: CircleAvatar(
                       radius: 42,
-                      backgroundColor: Color(0xFFE2E8F0),
-                      backgroundImage: NetworkImage(
-                        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
-                      ),
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      backgroundImage: _getAvatarProvider(avatarUrl),
                     ),
                   ),
                   Positioned(
                     bottom: 2,
                     right: 2,
-                    child: GestureDetector(
-                      onTap: onEditAvatarPressed,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.edit_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        color: Colors.white,
+                        size: 14,
                       ),
                     ),
                   ),
                 ],
               ),
+            ),
               const SizedBox(height: 12),
 
               // User Name

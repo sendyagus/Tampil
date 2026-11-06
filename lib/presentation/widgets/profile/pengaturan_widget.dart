@@ -109,7 +109,7 @@ class _PengaturanWidgetState extends State<PengaturanWidget> {
                     ),
                     Switch.adaptive(
                       value: _pengingatHarian,
-                      activeColor: const Color(0xFF6366F1),
+                      activeThumbColor: const Color(0xFF6366F1),
                       onChanged: (val) {
                         setState(() {
                           _pengingatHarian = val;

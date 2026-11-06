@@ -8,6 +8,7 @@ class TestHistoryItem {
   final IconData icon;
   final Color iconBgColor;
   final Color iconColor;
+  final VoidCallback? onTap;
 
   TestHistoryItem({
     required this.title,
@@ -17,6 +18,7 @@ class TestHistoryItem {
     required this.icon,
     required this.iconBgColor,
     required this.iconColor,
+    this.onTap,
   });
 }
 
@@ -97,7 +99,7 @@ class RiwayatTesWidget extends StatelessWidget {
 
         // White Container holding test history list
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -120,84 +122,99 @@ class RiwayatTesWidget extends StatelessWidget {
             ),
             itemBuilder: (context, index) {
               final item = displayItems[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Row(
-                  children: [
-                    // Icon Circle
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: item.iconBgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        item.icon,
-                        color: item.iconColor,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
 
-                    // Title & Subtitle
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              return InkWell(
+                onTap: item.onTap,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                  child: Row(
+                    children: [
+                      // Icon Circle
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: item.iconBgColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          item.icon,
+                          color: item.iconColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Title & Subtitle
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              item.categoryDate,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF94A3B8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Score & Status Badge & Chevron
+                      Row(
                         children: [
                           Text(
-                            item.title,
+                            '${item.score}',
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF0F172A),
                             ),
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            item.categoryDate,
-                            style: const TextStyle(
-                              fontSize: 12,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0F7FA),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              item.statusLabel,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00ACC1),
+                              ),
+                            ),
+                          ),
+                          if (item.onTap != null) ...[
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 18,
                               color: Color(0xFF94A3B8),
                             ),
-                          ),
+                          ],
                         ],
                       ),
-                    ),
-
-                    // Score & Status Badge
-                    Row(
-                      children: [
-                        Text(
-                          '${item.score}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F7FA),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            item.statusLabel,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF00ACC1),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },

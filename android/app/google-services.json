@@ -1,65 +1,26 @@
 {
   "project_info": {
-    "project_number": "617468312201",
-    "project_id": "tampilapp",
-    "storage_bucket": "tampilapp.firebasestorage.app"
+    "project_number": "886237187383",
+    "project_id": "tampil-a0b91",
+    "storage_bucket": "tampil-a0b91.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:617468312201:android:6824dba888da28ce806458",
+        "mobilesdk_app_id": "1:886237187383:android:e105fa94151d8b334c5eb2",
         "android_client_info": {
           "package_name": "com.example.flutter_application_1"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "617468312201-lcpj46nvbsnp3t863a6bnfnrvdnh87gt.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDsPMr6rGwoS80i_yEkkRD2fTENGVeXyoQ"
+          "current_key": "AIzaSyAse0TxSg31vvleQ6LHb-Yq8GVYVEIpC3Q"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "617468312201-lcpj46nvbsnp3t863a6bnfnrvdnh87gt.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:617468312201:android:f9e56cd5a986c55f806458",
-        "android_client_info": {
-          "package_name": "com.tampil.app"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "617468312201-lcpj46nvbsnp3t863a6bnfnrvdnh87gt.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDsPMr6rGwoS80i_yEkkRD2fTENGVeXyoQ"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "617468312201-lcpj46nvbsnp3t863a6bnfnrvdnh87gt.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

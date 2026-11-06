@@ -41,20 +41,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAyxuhfonIhTYiR4dbBNrMRRWgiNbhjrII',
-    appId: '1:617468312201:web:e4b85b34d0641237806458',
-    messagingSenderId: '617468312201',
-    projectId: 'tampilapp',
-    authDomain: 'tampilapp.firebaseapp.com',
-    storageBucket: 'tampilapp.firebasestorage.app',
+    apiKey: 'AIzaSyAeExPBsg23h1PYP70U86EOmBV7kqbtqJE',
+    appId: '1:886237187383:web:84a052cdb420250f4c5eb2',
+    messagingSenderId: '886237187383',
+    projectId: 'tampil-a0b91',
+    authDomain: 'tampil-a0b91.firebaseapp.com',
+    storageBucket: 'tampil-a0b91.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDsPMr6rGwoS80i_yEkkRD2fTENGVeXyoQ',
-    appId: '1:617468312201:android:6824dba888da28ce806458',
-    messagingSenderId: '617468312201',
-    projectId: 'tampilapp',
-    storageBucket: 'tampilapp.firebasestorage.app',
+    apiKey: 'AIzaSyAse0TxSg31vvleQ6LHb-Yq8GVYVEIpC3Q',
+    appId: '1:886237187383:android:e105fa94151d8b334c5eb2',
+    messagingSenderId: '886237187383',
+    projectId: 'tampil-a0b91',
+    storageBucket: 'tampil-a0b91.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -78,11 +78,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAyxuhfonIhTYiR4dbBNrMRRWgiNbhjrII',
-    appId: '1:617468312201:web:af3f038d7f8e43f1806458',
-    messagingSenderId: '617468312201',
-    projectId: 'tampilapp',
-    authDomain: 'tampilapp.firebaseapp.com',
-    storageBucket: 'tampilapp.firebasestorage.app',
+    apiKey: 'AIzaSyAeExPBsg23h1PYP70U86EOmBV7kqbtqJE',
+    appId: '1:886237187383:web:84a052cdb420250f4c5eb2',
+    messagingSenderId: '886237187383',
+    projectId: 'tampil-a0b91',
+    authDomain: 'tampil-a0b91.firebaseapp.com',
+    storageBucket: 'tampil-a0b91.firebasestorage.app',
   );
 }

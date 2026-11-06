@@ -7,6 +7,7 @@ import '../widgets/test/test_daily_challenge_widget.dart';
 import '../widgets/test/context_selector_widget.dart';
 import '../widgets/test/studi_kasus_widget.dart';
 import '../widgets/test/hasil_terakhir_widget.dart';
+import 'test/microphone_permission_screen.dart';
 
 class TestScreen extends StatelessWidget {
   const TestScreen({super.key});
@@ -29,12 +30,21 @@ class TestScreen extends StatelessWidget {
           // 2. Daily Challenge Card
           TestDailyChallengeWidget(
             onStartPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Memulai Daily Challenge: Ceritakan harimu dalam 60 detik',
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MicrophonePermissionScreen(
+                    onPermissionGranted: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Izin diberikan! Memulai Daily Challenge...',
+                          ),
+                          backgroundColor: Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                   ),
-                  behavior: SnackBarBehavior.floating,
                 ),
               );
             },
