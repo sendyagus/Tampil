@@ -202,13 +202,15 @@ class _MicrophonePermissionScreenState
                     child: ElevatedButton(
                       onPressed: _isChecked
                           ? () {
-                              // Tutup lalu buka layar rekaman
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (_) => const RecordingScreen(),
-                                ),
-                              );
-                              widget.onPermissionGranted?.call();
+                              if (widget.onPermissionGranted != null) {
+                                widget.onPermissionGranted!();
+                              } else {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (_) => const RecordingScreen(),
+                                  ),
+                                );
+                              }
                             }
                           : null,
                       style: ElevatedButton.styleFrom(

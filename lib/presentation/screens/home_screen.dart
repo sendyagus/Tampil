@@ -142,19 +142,14 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        // TabDissolve menjaga state seluruh tab (seperti IndexedStack)
-        // namun menggantinya dengan efek smooth dissolve; Bottom Navigation
-        // sengaja berada di luar sehingga tidak ikut memudar.
-        child: TabDissolve(
-          currentIndex: _currentNavIndex,
-          children: [
-            _buildHomeContent(),
-            const RoadmapScreen(),
-            const TestScreen(),
-            const ProfileScreen(),
-          ],
-        ),
+      body: TabDissolve(
+        currentIndex: _currentNavIndex,
+        children: [
+          SafeArea(top: true, bottom: false, child: _buildHomeContent()),
+          SafeArea(top: true, bottom: false, child: const RoadmapScreen()),
+          const TestScreen(),
+          SafeArea(top: true, bottom: false, child: const ProfileScreen()),
+        ],
       ),
       bottomNavigationBar: CustomBottomNav(
         selectedIndex: _currentNavIndex,
