@@ -218,7 +218,7 @@ class AiAnalysisService {
       final cakupanData = await _evaluasiCakupan(text, caseId);
 
       // 3. Evaluasi Kualitas Isi & Feedback AI melalui POST /nilai_isi
-      final feedbackData = await _evaluasiIsi(text);
+      final feedbackData = await _evaluasiIsi(text, caseId);
 
       // 4. Hitung Skor Keseluruhan & Communication Index
       return _buildResult(
@@ -300,13 +300,13 @@ class AiAnalysisService {
     }
   }
 
-  Future<Map<String, dynamic>> _evaluasiIsi(String text) async {
+  Future<Map<String, dynamic>> _evaluasiIsi(String text, String caseId) async {
     try {
       final uri = Uri.parse('$baseUrl/nilai_isi');
       final res = await http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'teks': text, 'naskah': '', 'topik': ''}),
+        body: jsonEncode({'teks': text,'kasus_id': caseId, 'naskah': '', 'topik': ''}),
       ).timeout(const Duration(seconds: 30));
 
       if (res.statusCode == 200) {
@@ -400,80 +400,129 @@ class AiAnalysisService {
         ? ((feedbackData['skor_isi'] as num).toInt() * 0.9 + (coveredCount >= 2 ? 10 : 0)).round().clamp(40, 95)
         : (coveredCount >= 3 ? 85 : coveredCount >= 2 ? 72 : 55);
 
-    // E. Kelancaran jeda (bobot 30%): Kombinasi tempo dan kebersihan ucapan
-    final int skorKelancaran = (
-      (skorKebersihan * 0.4) +
-      (skorTempo * 0.4) +
-      (totalWords > 15 ? 20 : totalWords > 5 ? 10 : 0)
-    ).round().clamp(45, 96);
+// Tidak menggunakan nilai minimum paksa.
+// Jika pengguna tidak berbicara, skornya dapat menjadi 0.
+final int skorKelancaran = (
+  (skorKebersihan * 0.4) +
+  (skorTempo * 0.4) +
+  (totalWords > 15
+      ? 20
+      : totalWords > 5
+          ? 10
+          : 0)
+).round().clamp(0, 100);
 
-    // F. TOTAL COMMUNICATION INDEX (Bobot: Kelancaran 30% + Kebersihan 25% + Cakupan 20% + Tempo 15% + Struktur 10%)
-    final communicationIndex = (
-      (skorKelancaran * 0.30) +
-      (skorKebersihan * 0.25) +
-      (skorCakupan * 0.20) +
-      (skorTempo * 0.15) +
-      (skorStruktur * 0.10)
-    ).round().clamp(30, 98);
 
-    // Label dinamis sesuai Communication Index
-    final String label;
-    if (communicationIndex >= 85) {
-      label = 'Luar Biasa';
-    } else if (communicationIndex >= 70) {
-      label = 'Baik';
-    } else if (communicationIndex >= 55) {
-      label = 'Cukup';
-    } else {
-      label = 'Perlu Latihan';
-    }
+// G. TOTAL COMMUNICATION INDEX
+final int communicationIndex;
 
-    final int pointsAdded = (communicationIndex / 12).round().clamp(3, 10);
+if (totalWords == 0) {
+  // Tidak ada ucapan = tidak ada nilai komunikasi.
+  communicationIndex = 0;
+} else {
+  communicationIndex = (
+    (skorKelancaran * 0.30) +
+    (skorKebersihan * 0.25) +
+    (skorCakupan * 0.20) +
+    (skorTempo * 0.15) +
+    (skorStruktur * 0.10)
+  ).round().clamp(0, 100);
+}
 
-    // 5. Feedback dari Groq LLM
-    final kekuatanList = feedbackData['kekuatan'] as List<dynamic>? ?? [];
-    final strength = kekuatanList.isNotEmpty
-        ? kekuatanList.first.toString()
-        : (skorKebersihan >= 75 ? 'Ucapanmu terdengar jelas dan minim kata pengisi.' : 'Kamu langsung menyampaikan inti pembicaraan di awal.');
 
-    final perbaikanList = feedbackData['perbaikan'] as List<dynamic>? ?? [];
-    String improvement = fillerCount > 0 ? 'Kurangi filler saat berpikir.' : 'Latih variasi intonasi bicara.';
-    String quote = fillerCount > 0 ? '“eee, jadi menurutku, eee...”' : '“Jadi menurut saya...”';
-    String suggestion = '“Menurutku, kita bisa membagi tugas agar solusinya lebih jelas.”';
+// H. POIN YANG DIDAPAT
+// Jika tidak ada ucapan, pengguna tidak mendapat poin.
+final int pointsAdded = totalWords == 0
+    ? 0
+    : (communicationIndex / 12).round().clamp(1, 10);
 
-    if (perbaikanList.isNotEmpty && perbaikanList.first is Map) {
-      final p = perbaikanList.first as Map<String, dynamic>;
-      improvement = p['masalah']?.toString() ?? improvement;
-      if (p['bagian'] != null) quote = '“${p['bagian']}”';
-      if (p['saran'] != null) suggestion = '“${p['saran']}”';
-    }
 
-    // 6. Transkrip asli yang ditampilkan
-    final displayTranscript = transcript.trim().isNotEmpty
-        ? transcript.trim()
-        : 'Belum ada ucapan yang terdeteksi pada rekaman suara.';
+// I. FEEDBACK DARI GROQ LLM
 
-    return SpeechAnalysisResult(
-      transcript: displayTranscript,
-      durationSeconds: safeDuration,
-      wordsPerMinute: wpm > 0 ? wpm : 130,
-      fillerWordsCount: fillerCount,
-      communicationIndex: communicationIndex,
-      scoreLabel: label,
-      pointsAdded: pointsAdded,
-      keyPointsRatio: keyPointsRatio,
-      keyPoints: keyPoints,
-      breakdown: ScoreBreakdown(
-        kelancaranJeda: skorKelancaran,
-        kebersihanUcapan: skorKebersihan,
-        tempo: skorTempo,
-        cakupanIsi: skorCakupan,
-        struktur: skorStruktur,
-      ),
-      strengthText: strength,
-      improvementText: improvement,
-      quoteSample: quote,
-      suggestionText: suggestion,
-    );
+// Mengambil daftar kekuatan dari hasil AI.
+final kekuatanList =
+    feedbackData['kekuatan'] as List<dynamic>? ?? [];
+
+// Jika AI tidak menemukan kekuatan, jangan membuat
+// feedback positif yang tidak sesuai dengan ucapan pengguna.
+final kekuatan = kekuatanList.isNotEmpty
+    ? kekuatanList.first.toString()
+    : 'Belum ada kekuatan yang dapat dinilai karena jawaban belum memiliki isi yang cukup.';
+
+// Mengambil daftar area perbaikan dari hasil AI.
+final perbaikanList =
+    feedbackData['perbaikan'] as List<dynamic>? ?? [];
+
+String improvement = fillerCount > 0
+    ? 'Kurangi filler saat berpikir.'
+    : 'Latih penyampaian jawaban agar lebih jelas.';
+
+String quote = fillerCount > 0
+    ? '“eee...”'
+    : 'Belum ada bagian ucapan yang cukup untuk dikutip.';
+
+String suggestion =
+    'Mulailah menjawab dengan menjelaskan penyebab, solusi, dan langkah berikutnya sesuai studi kasus.';
+
+if (perbaikanList.isNotEmpty && perbaikanList.first is Map) {
+  final p = perbaikanList.first as Map<String, dynamic>;
+
+  improvement = p['masalah']?.toString() ?? improvement;
+
+  if (p['bagian'] != null &&
+      p['bagian'].toString().trim().isNotEmpty) {
+    quote = '“${p['bagian']}”';
+  }
+
+  if (p['saran'] != null &&
+      p['saran'].toString().trim().isNotEmpty) {
+    suggestion = p['saran'].toString();
   }
 }
+
+
+// J. LABEL HASIL
+
+final String label;
+
+if (totalWords == 0) {
+  label = 'Belum Ada Ucapan';
+} else if (communicationIndex >= 85) {
+  label = 'Luar Biasa';
+} else if (communicationIndex >= 70) {
+  label = 'Baik';
+} else if (communicationIndex >= 55) {
+  label = 'Cukup';
+} else {
+  label = 'Perlu Latihan';
+}
+
+// 6. Transkrip asli yang ditampilkan
+final displayTranscript = transcript.trim().isNotEmpty
+    ? transcript.trim()
+    : 'Belum ada ucapan yang terdeteksi pada rekaman suara.';
+
+  return SpeechAnalysisResult(
+    transcript: displayTranscript,
+    durationSeconds: safeDuration,
+    wordsPerMinute: wpm > 0 ? wpm : 130,
+    fillerWordsCount: fillerCount,
+    communicationIndex: communicationIndex,
+    scoreLabel: label,
+    pointsAdded: pointsAdded,
+    keyPointsRatio: keyPointsRatio,
+    keyPoints: keyPoints,
+    breakdown: ScoreBreakdown(
+      kelancaranJeda: skorKelancaran,
+      kebersihanUcapan: skorKebersihan,
+      tempo: skorTempo,
+      cakupanIsi: skorCakupan,
+      struktur: skorStruktur,
+    ),
+    strengthText: kekuatan,
+    improvementText: improvement,
+    quoteSample: quote,
+    suggestionText: suggestion,
+  );
+    }
+  }
