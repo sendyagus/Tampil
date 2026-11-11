@@ -37,15 +37,11 @@ Duration dissolveDuration(BuildContext context, Duration normal) {
 
 /// Kombinasi FadeTransition + naik lembut + micro-scale.
 ///
-/// Dipakai seragam oleh route push/pop dan crossfade tab agar karakter
-/// gerakkan identik di seluruh aplikasi. Semua transform bersifat
-/// paint-only (Transform/Fade) sehingga murah untuk performa.
+/// Dipakai seragam oleh route push/pop agar karakter gerakkan identik
+/// di seluruh aplikasi. Semua transform bersifat paint-only
+/// (Transform/Fade) sehingga murah untuk performa.
 class SoftRiseFade extends StatelessWidget {
-  const SoftRiseFade({
-    super.key,
-    required this.animation,
-    required this.child,
-  });
+  const SoftRiseFade({super.key, required this.animation, required this.child});
 
   /// 0.0 = halaman belum masuk (turun sedikit, transparan),
   /// 1.0 = posisi penuh.
@@ -70,7 +66,10 @@ class SoftRiseFade extends StatelessWidget {
             final t = curved.value;
             return Transform.translate(
               // Naik dari +kRiseFraction menuju 0.
-              offset: Offset(0, (1.0 - t) * MediaQuery.of(context).size.height * kRiseFraction),
+              offset: Offset(
+                0,
+                (1.0 - t) * MediaQuery.of(context).size.height * kRiseFraction,
+              ),
               child: inner,
             );
           },
@@ -95,25 +94,26 @@ class DissolvePageRoute<T> extends PageRouteBuilder<T> {
     Duration? forwardDuration,
     Duration? reverseDuration,
   }) : super(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              Builder(builder: builder),
-          settings: settings,
-          transitionDuration:
-              forwardDuration ?? kDissolveForwardDuration,
-          reverseTransitionDuration:
-              reverseDuration ?? kDissolveReverseDuration,
-          // Rise + fade untuk halaman yang masuk; halaman di bawahnya
-          // hanya ikut meredup halus (tanpa bergerak) saat tertindih.
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final entering = SoftRiseFade(animation: animation, child: child);
-            return FadeTransition(
-              opacity: Tween<double>(begin: 1.0, end: 0.85).animate(
-                CurvedAnimation(parent: secondaryAnimation, curve: Curves.linear),
-              ),
-              child: entering,
-            );
-          },
-        );
+         pageBuilder: (context, animation, secondaryAnimation) =>
+             Builder(builder: builder),
+         settings: settings,
+         transitionDuration: forwardDuration ?? kDissolveForwardDuration,
+         reverseTransitionDuration: reverseDuration ?? kDissolveReverseDuration,
+         // Rise + fade untuk halaman yang masuk; halaman di bawahnya
+         // hanya ikut meredup halus (tanpa bergerak) saat tertindih.
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           final entering = SoftRiseFade(animation: animation, child: child);
+           return FadeTransition(
+             opacity: Tween<double>(begin: 1.0, end: 0.85).animate(
+               CurvedAnimation(
+                 parent: secondaryAnimation,
+                 curve: Curves.linear,
+               ),
+             ),
+             child: entering,
+           );
+         },
+       );
 }
 
 /// Helper navigasi seragam untuk seluruh alur TAMPIL.
@@ -122,35 +122,53 @@ class DissolvePageRoute<T> extends PageRouteBuilder<T> {
 /// dan `context.pushDissolveReplacement((_) => const HomeScreen())`.
 /// Durasi otomatis nol ketika reduced motion / disable animations aktif.
 extension DissolveNavigator on BuildContext {
-  Future<T?> pushDissolve<T>(Widget Function(BuildContext context) pageBuilder) {
+  Future<T?> pushDissolve<T>(
+    Widget Function(BuildContext context) pageBuilder,
+  ) {
     final reduceMotion = MediaQuery.maybeOf(this)?.disableAnimations ?? false;
-    return Navigator.of(this).push(DissolvePageRoute<T>(
-      builder: pageBuilder,
-      forwardDuration:
-          reduceMotion ? Duration.zero : kDissolveForwardDuration,
-      reverseDuration:
-          reduceMotion ? Duration.zero : kDissolveReverseDuration,
-    ));
+    return Navigator.of(this).push(
+      DissolvePageRoute<T>(
+        builder: pageBuilder,
+        forwardDuration: reduceMotion
+            ? Duration.zero
+            : kDissolveForwardDuration,
+        reverseDuration: reduceMotion
+            ? Duration.zero
+            : kDissolveReverseDuration,
+      ),
+    );
   }
 
-  Future<T?> pushDissolveReplacement<T>(Widget Function(BuildContext context) pageBuilder) {
+  Future<T?> pushDissolveReplacement<T>(
+    Widget Function(BuildContext context) pageBuilder,
+  ) {
     final reduceMotion = MediaQuery.maybeOf(this)?.disableAnimations ?? false;
-    return Navigator.of(this).pushReplacement(DissolvePageRoute<T>(
-      builder: pageBuilder,
-      forwardDuration:
-          reduceMotion ? Duration.zero : kDissolveForwardDuration,
-      reverseDuration:
-          reduceMotion ? Duration.zero : kDissolveReverseDuration,
-    ));
+    return Navigator.of(this).pushReplacement(
+      DissolvePageRoute<T>(
+        builder: pageBuilder,
+        forwardDuration: reduceMotion
+            ? Duration.zero
+            : kDissolveForwardDuration,
+        reverseDuration: reduceMotion
+            ? Duration.zero
+            : kDissolveReverseDuration,
+      ),
+    );
   }
 }
 
 /// Crossfade antar konten tab Bottom Navigation TAMPIL.
 ///
-/// Semua tab tetap hidup (state, posisi scroll, stream, dan sesi
-/// perekaman tidak dihancurkan) — meniru perilaku `IndexedStack` —
-/// namun saat [currentIndex] berubah, tab baru masuk dengan Soft Rise +
-/// Fade di atas tab lama yang memudar di bawahnya.
+/// Semua tab SELALU hidup di tree (state, posisi scroll, stream, dan sesi
+/// perekaman tidak dihancurkan) — meniru perilaku `IndexedStack`.
+/// Saat [currentIndex] berubah, tab baru masuk dengan Soft Rise + Fade
+/// di atas tab lama yang memudar, tanpa mengubah bentuk tree sama sekali:
+/// hanya nilai opacity/offset/scale yang dianimasikan lewat AnimatedBuilder.
+///
+/// Versi lama pernah merender child berbeda antara mode stabil & animasi,
+/// sehingga subtree tab dihancurkan-dibangun ulang tiap pindah tab. Itu
+/// memicu bug "Stream has already been listened to" (stream Firestore
+/// single-subscription di HomeScreen) dan reset state tab.
 ///
 /// Bottom Navigation berada di luar widget ini sehingga tidak ikut
 /// memudar atau dibangun ulang.
@@ -171,6 +189,7 @@ class TabDissolve extends StatefulWidget {
 class _TabDissolveState extends State<TabDissolve>
     with TickerProviderStateMixin {
   late final AnimationController _controller;
+  late final CurvedAnimation _fade;
   int _previousIndex = 0;
 
   @override
@@ -180,15 +199,14 @@ class _TabDissolveState extends State<TabDissolve>
     _controller = AnimationController(
       vsync: this,
       duration: kDissolveForwardDuration,
+      reverseDuration: kDissolveReverseDuration,
       value: 1.0,
     );
-    // Setelah fade-in selesai, kembali ke mode stabil agar tab lama
-    // dilepas dari layar (hemat paint, menghindari frame drop).
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        setState(() {});
-      }
-    });
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: kEntranceCurve,
+      reverseCurve: kEntranceCurve.flipped,
+    );
   }
 
   @override
@@ -196,7 +214,7 @@ class _TabDissolveState extends State<TabDissolve>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.currentIndex != widget.currentIndex) {
       _previousIndex = oldWidget.currentIndex;
-      // Restart rise+fade tab baru di atas tab lama.
+      // Restart rise+fade tab baru di atas tab lama yang memudar.
       _controller.value = 0.0;
       _controller.forward();
     }
@@ -204,6 +222,7 @@ class _TabDissolveState extends State<TabDissolve>
 
   @override
   void dispose() {
+    _fade.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -212,45 +231,49 @@ class _TabDissolveState extends State<TabDissolve>
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final rise = MediaQuery.of(context).size.height * kRiseFraction;
 
-    final newChild = KeyedSubtree(
-      key: ValueKey<int>(widget.currentIndex),
-      child: widget.children[widget.currentIndex],
-    );
-    final oldChild = KeyedSubtree(
-      key: ValueKey<int>(_previousIndex),
-      child: widget.children[_previousIndex],
-    );
-
-    // Mode stabil: hanya tab aktif yang (secara visual) terlihat —
-    // sama seperti IndexedStack, semua child tetap hidup di tree.
-    if (reduceMotion ||
-        _previousIndex == widget.currentIndex ||
-        (_controller.value >= 1.0 && !_controller.isAnimating)) {
-      return KeyedSubtree(key: const ValueKey('tab-dissolve'), child: newChild);
-    }
-
-    // Dibungkus KeyedSubtree dengan key tetap agar elemen Stack berikut
-    // child-nya bereuse saat berpindah antara mode stabil dan mode animasi
-    // (state tab, posisi scroll, dan sesi rekaman tidak terganggu).
-    return KeyedSubtree(
-      key: const ValueKey('tab-dissolve'),
-      child: RepaintBoundary(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Tab lama memudar halus di bawah (fade-only, tanpa gerak)
-            // agar tidak ada dua halaman yang bergeser bersamaan.
-            FadeTransition(
-              opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
-                CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-              ),
-              child: oldChild,
+    // Bentuk tree KONSTAN: semua tab selalu ada di Stack, hanya nilai
+    // opacity/posisi/scale yang berubah lewat AnimatedBuilder. Elemen &
+    // state tiap tab tidak pernah dihancurkan saat berpindah, sehingga
+    // stream Firestore tidak di-listen ulang, posisi scroll & sesi
+    // rekaman tetap hidup.
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          for (int i = 0; i < widget.children.length; i++)
+            AnimatedBuilder(
+              key: ValueKey<int>(i),
+              animation: _controller,
+              builder: (context, inner) {
+                double opacity = 0;
+                Offset offset = Offset.zero;
+                double scale = 1.0;
+                if (i == widget.currentIndex) {
+                  // Tab aktif: rise + fade + micro-scale (gaya modal iOS).
+                  final t = reduceMotion ? 1.0 : _fade.value;
+                  opacity = t;
+                  offset = Offset(0, (1 - t) * rise);
+                  scale = kStartScale + (1 - kStartScale) * t;
+                } else if (!reduceMotion && i == _previousIndex) {
+                  // Tab lama memudar halus (fade-only, tanpa gerak).
+                  opacity = (1 - _fade.value).clamp(0.0, 1.0);
+                }
+                return IgnorePointer(
+                  ignoring: i != widget.currentIndex,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Transform.translate(
+                      offset: offset,
+                      child: Transform.scale(scale: scale, child: inner),
+                    ),
+                  ),
+                );
+              },
+              child: widget.children[i],
             ),
-            // Tab baru: rise + fade + micro-scale (karakter sama dgn route).
-            SoftRiseFade(animation: _controller, child: newChild),
-          ],
-        ),
+        ],
       ),
     );
   }
