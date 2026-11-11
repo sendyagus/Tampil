@@ -175,7 +175,9 @@ class _NodeInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cross = alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    final cross = alignRight
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.start;
     final terbuka = status != 'kunci';
 
     final titleStyle = TextStyle(
@@ -193,9 +195,8 @@ class _NodeInfo extends StatelessWidget {
     );
     final subtitle = switch (status) {
       'selesai' => 'Selesai · +10 XP',
-      'aktif' => lesson.targetAspek.isEmpty
-          ? 'Mulai lesson ini'
-          : lesson.targetAspek,
+      'aktif' =>
+        lesson.targetAspek.isEmpty ? 'Mulai lesson ini' : lesson.targetAspek,
       _ => 'Selesaikan lesson sebelumnya',
     };
 
@@ -203,10 +204,10 @@ class _NodeInfo extends StatelessWidget {
       crossAxisAlignment: cross,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('LESSON \${index + 1}', style: tagStyle),
+        Text('LESSON ${index + 1}', style: tagStyle),
         const SizedBox(height: 2),
         Text(
-          lesson.judul.isEmpty ? 'Lesson \${index + 1}' : lesson.judul,
+          lesson.judul.isEmpty ? 'Lesson ${index + 1}' : lesson.judul,
           style: titleStyle,
           textAlign: alignRight ? TextAlign.end : TextAlign.start,
         ),
@@ -251,11 +252,7 @@ class _CompletedNodeCircle extends StatelessWidget {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.check_rounded,
-          color: Colors.white,
-          size: 26,
-        ),
+        child: const Icon(Icons.check_rounded, color: Colors.white, size: 26),
       ),
     );
   }
