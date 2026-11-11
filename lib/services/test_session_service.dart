@@ -67,8 +67,9 @@ class TestSessionModel {
           ? bData!['kebersihan_ucapan'] as int
           : 60,
       tempo: (bData?['tempo'] is int) ? bData!['tempo'] as int : 85,
-      cakupanIsi:
-          (bData?['cakupan_isi'] is int) ? bData!['cakupan_isi'] as int : 75,
+      cakupanIsi: (bData?['cakupan_isi'] is int)
+          ? bData!['cakupan_isi'] as int
+          : 75,
       struktur: (bData?['struktur'] is int) ? bData!['struktur'] as int : 65,
     );
 
@@ -99,10 +100,12 @@ class TestSessionModel {
       kategoriSkor: data['kategori_skor'] ?? 'Perlu Latihan',
       transcript: data['transcript'] ?? '',
       status: data['status'] ?? 'completed',
-      wordsPerMinute:
-          data['words_per_minute'] is int ? data['words_per_minute'] : 0,
-      fillerWordsCount:
-          data['filler_words_count'] is int ? data['filler_words_count'] : 0,
+      wordsPerMinute: data['words_per_minute'] is int
+          ? data['words_per_minute']
+          : 0,
+      fillerWordsCount: data['filler_words_count'] is int
+          ? data['filler_words_count']
+          : 0,
       pointsAdded: data['points_added'] is int ? data['points_added'] : 6,
       keyPointsRatio: data['key_points_ratio'] ?? '',
       breakdown: breakdown,
@@ -141,11 +144,13 @@ class TestSessionModel {
         'struktur': breakdown.struktur,
       },
       'key_points': keyPoints
-          .map((kp) => {
-                'text': kp.text,
-                'is_covered': kp.isCovered,
-                'matched_keywords': kp.matchedKeywords,
-              })
+          .map(
+            (kp) => {
+              'text': kp.text,
+              'is_covered': kp.isCovered,
+              'matched_keywords': kp.matchedKeywords,
+            },
+          )
           .toList(),
       'strength_text': strengthText,
       'improvement_text': improvementText,
@@ -258,28 +263,34 @@ class TestSessionService {
         final data = userDoc.data() ?? {};
         currentXp = (data['total_xp'] is int) ? data['total_xp'] as int : 0;
         final lastDateStr = data['last_activity_date'] as String?;
-        final savedStreak =
-            (data['current_streak'] is int) ? data['current_streak'] as int : 1;
+        final savedStreak = (data['current_streak'] is int)
+            ? data['current_streak'] as int
+            : 1;
         final savedLongest = (data['longest_streak'] is int)
             ? data['longest_streak'] as int
             : savedStreak;
 
         if (lastDateStr == todayStr) {
           // Aktivitas sudah tercatat hari ini, pertahankan streak
-          currentStreak = savedStreak;
-          longestStreak = savedLongest;
+          currentStreak = savedStreak > 0 ? savedStreak : 1;
+          longestStreak = currentStreak > savedLongest
+              ? currentStreak
+              : savedLongest;
         } else if (lastDateStr != null) {
           try {
             final lastDate = DateTime.parse(lastDateStr);
             final differenceInDays = DateTime(now.year, now.month, now.day)
-                .difference(DateTime(lastDate.year, lastDate.month, lastDate.day))
+                .difference(
+                  DateTime(lastDate.year, lastDate.month, lastDate.day),
+                )
                 .inDays;
 
             if (differenceInDays == 1) {
               // Berkelanjutan hari berikutnya -> streak naik
               currentStreak = savedStreak + 1;
-              longestStreak =
-                  currentStreak > savedLongest ? currentStreak : savedLongest;
+              longestStreak = currentStreak > savedLongest
+                  ? currentStreak
+                  : savedLongest;
             } else if (differenceInDays > 1) {
               // Terlewat lebih dari 1 hari -> reset streak ke 1
               currentStreak = 1;
@@ -365,7 +376,9 @@ class TestSessionService {
         scoreLabel: kategoriSkor,
       );
 
-      debugPrint('[TestSessionService] Sesi test dasar & user stats berhasil disimpan.');
+      debugPrint(
+        '[TestSessionService] Sesi test dasar & user stats berhasil disimpan.',
+      );
     } catch (e) {
       debugPrint('[TestSessionService] Error save test session: $e');
     }

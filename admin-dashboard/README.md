@@ -103,8 +103,8 @@ dashboard meminta konfirmasi lebih dulu.
 5. Aktifkan **Drive API**, **Sheets API**, dan pastikan akun tersebut punya peran
    **Owner/Editor** di project (dipakai Firebase Admin via `cloud-platform` scope).
 6. Otorisasi sekali: `cd server && npm run auth` → buka URL → **Allow** → token tersimpan
-   di `server/credentials/oauth-token.json`. Backend otomatis memakai OAuth bila
-   `service-account.json` tidak ada.
+   di `server/credentials/oauth-token.json`. Backend memakai OAuth bila
+   `service-account.json` tidak ada atau private key di dalamnya tidak valid.
 
 ### 2. Aktifkan API (pada project yang sama)
 - **Google Drive API**

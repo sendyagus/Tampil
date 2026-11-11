@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createPrivateKey } from 'node:crypto';
 import dotenv from 'dotenv';
 import { google } from 'googleapis';
 import admin from 'firebase-admin';
@@ -12,7 +13,7 @@ dotenv.config();
 //      (mungkin diblokir Organization Policy: "Disable service account key creation")
 //   B. OAuth akun Google     -> credentials/oauth-client.json + credentials/oauth-token.json
 //      (dibuat lewat `npm run auth`. TIDAK diblokir policy service account.)
-// Jika keduanya ada, service account dipakai lebih dulu.
+// Service account dipakai lebih dulu bila valid; OAuth menjadi fallback.
 const CRED_DIR = path.join(process.cwd(), 'credentials');
 const SA_PATH =
   process.env.GOOGLE_SERVICE_ACCOUNT_JSON || path.join(CRED_DIR, 'service-account.json');
@@ -36,6 +37,38 @@ function readJson(p) {
 const hasServiceAccount = () => fs.existsSync(SA_PATH);
 const hasOAuth = () => fs.existsSync(OAUTH_CLIENT_PATH) && fs.existsSync(OAUTH_TOKEN_PATH);
 
+let _serviceAccountChecked = false;
+let _serviceAccount;
+function getServiceAccount() {
+  if (_serviceAccountChecked) return _serviceAccount;
+  if (!hasServiceAccount()) {
+    _serviceAccountChecked = true;
+    return undefined;
+  }
+
+  try {
+    const keys = readJson(SA_PATH);
+    const privateKey = keys.private_key?.replace(/\\n/g, '\n');
+    if (!keys.project_id || !keys.client_email || !privateKey) {
+      throw new Error('Service account fields are missing.');
+    }
+    createPrivateKey(privateKey);
+    _serviceAccount = { ...keys, private_key: privateKey };
+  } catch {
+    if (!hasOAuth()) {
+      throw new Error(
+        'Service account tidak valid. Unduh ulang JSON asli dari Google Cloud atau siapkan kredensial OAuth.'
+      );
+    }
+    console.warn(
+      '⚠️  Service account tidak valid; backend memakai kredensial OAuth yang tersedia.'
+    );
+  }
+
+  _serviceAccountChecked = true;
+  return _serviceAccount;
+}
+
 function oauthClientCreds() {
   const raw = readJson(OAUTH_CLIENT_PATH);
   return raw.installed || raw.web || raw;
@@ -46,8 +79,8 @@ let _auth;
 export function getAuth() {
   if (_auth) return _auth;
 
-  if (hasServiceAccount()) {
-    const keys = readJson(SA_PATH);
+  const keys = getServiceAccount();
+  if (keys) {
     _auth = new google.auth.GoogleAuth({ credentials: keys, scopes: SCOPES });
     return _auth;
   }
@@ -95,13 +128,13 @@ export function getFirebase() {
     return admin;
   }
 
-  if (hasServiceAccount()) {
-    const keys = readJson(SA_PATH); // service account yg sama dipakai untuk Firebase Admin
+  const keys = getServiceAccount();
+  if (keys) {
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: keys.project_id,
         clientEmail: keys.client_email,
-        privateKey: keys.private_key.replace(/\\n/g, '\n'),
+        privateKey: keys.private_key,
       }),
     });
     _fbReady = true;

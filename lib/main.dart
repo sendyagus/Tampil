@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'services/roadmap_service.dart';
 
 import 'presentation/screens/splash_screen.dart';
 
@@ -12,9 +11,6 @@ Future<void> main() async {
 
   // Inisialisasi Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Otomatis isi database units & lessons ke Cloud Firestore
-  await RoadmapService().seedInitialData();
 
   runApp(
     DevicePreview(

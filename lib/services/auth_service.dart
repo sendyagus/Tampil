@@ -2,7 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'roadmap_service.dart';
+int _readInt(dynamic value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -52,10 +56,10 @@ class AuthService {
         'status': 'active',
         'tujuan': ['Percakapan sehari-hari'],
         // UserStats (PRD Bagian 13 & 20)
-        'total_xp': 20,
+        'total_xp': 0,
         'level': 'Pemula',
-        'current_streak': 5,
-        'longest_streak': 5,
+        'current_streak': 0,
+        'longest_streak': 0,
         'last_activity_date': DateTime.now().toIso8601String().split('T').first,
         'fokus_aspek': 'Kelancaran jeda',
         // UserQuota (PRD Bagian 10.9 & 20)
@@ -87,7 +91,9 @@ class AuthService {
 
     try {
       final updateData = <String, dynamic>{};
-      if (nama != null && nama.trim().isNotEmpty) updateData['nama'] = nama.trim();
+      if (nama != null && nama.trim().isNotEmpty) {
+        updateData['nama'] = nama.trim();
+      }
       if (jenisKelamin != null) updateData['jenis_kelamin'] = jenisKelamin;
       if (peran != null) updateData['peran'] = peran;
       if (bio != null) updateData['bio'] = bio.trim();
@@ -109,22 +115,77 @@ class AuthService {
     }
   }
 
-  Future<void> addXp(int xp) async {
+  Future<bool> completeLesson({
+    required String lessonId,
+    required String unitId,
+    int rewardXp = 10,
+  }) async {
     final uid = currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null || lessonId.isEmpty) return false;
 
-    try {
-      await _firestore.collection('users').doc(uid).update({
-        'total_xp': FieldValue.increment(xp),
-        'last_activity_date': DateTime.now().toIso8601String().split('T').first,
+    final userRef = _firestore.collection('users').doc(uid);
+    final progressRef = userRef.collection('lesson_progress').doc(lessonId);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final todayString = today.toIso8601String().split('T').first;
+
+    return _firestore.runTransaction((transaction) async {
+      final progressSnapshot = await transaction.get(progressRef);
+      if (progressSnapshot.exists) return false;
+
+      final userSnapshot = await transaction.get(userRef);
+      final userData = userSnapshot.data() ?? <String, dynamic>{};
+      final totalXp = _readInt(userData['total_xp']);
+      final savedStreak = _readInt(userData['current_streak']);
+      final longestStreak = _readInt(userData['longest_streak']);
+      final lastActivity = DateTime.tryParse(
+        userData['last_activity_date']?.toString() ?? '',
+      );
+      final daysSinceActivity = lastActivity == null
+          ? null
+          : today
+                .difference(
+                  DateTime(
+                    lastActivity.year,
+                    lastActivity.month,
+                    lastActivity.day,
+                  ),
+                )
+                .inDays;
+
+      final currentStreak = switch (daysSinceActivity) {
+        0 => savedStreak > 0 ? savedStreak : 1,
+        1 => savedStreak + 1,
+        _ => 1,
+      };
+      final updatedLongestStreak = currentStreak > longestStreak
+          ? currentStreak
+          : longestStreak;
+      final updatedTotalXp = totalXp + rewardXp;
+      final level = updatedTotalXp >= 300
+          ? 'Mahir'
+          : updatedTotalXp >= 100
+          ? 'Menengah'
+          : 'Pemula';
+
+      transaction.set(progressRef, {
+        'lesson_id': lessonId,
+        'unit_id': unitId,
+        'completed_at': FieldValue.serverTimestamp(),
       });
-      print('🎉 Berhasil menambah +$xp XP ke Firestore untuk user $uid!');
-    } catch (e) {
-      print('❌ Gagal menambah XP: $e');
-    }
+      transaction.set(userRef, {
+        'total_xp': updatedTotalXp,
+        'level': level,
+        'current_streak': currentStreak,
+        'longest_streak': updatedLongestStreak,
+        'last_activity_date': todayString,
+        'last_active_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return true;
+    });
   }
 
-  // Sign In dengan email dan password (Firebase Auth + Sinkron Firestore + Seeder)
+  // Sign In dengan email dan password (Firebase Auth + Sinkron Firestore)
   Future<UserCredential> signInWithEmail({
     required String email,
     required String password,
@@ -136,8 +197,6 @@ class AuthService {
 
     if (credential.user != null) {
       await _syncUserProfile(credential.user!);
-      // Mengisi 3 Unit & 15 Lesson ke Firestore saat user berhasil login
-      await RoadmapService().seedInitialData();
     }
 
     return credential;
@@ -164,7 +223,6 @@ class AuthService {
         fullName: fullName,
         birthYear: birthYear,
       );
-      await RoadmapService().seedInitialData();
     }
 
     return credential;
@@ -188,13 +246,11 @@ class AuthService {
           credential.user!,
           fullName: credential.user!.displayName,
         );
-        // Pastikan database units & lessons siap
-        await RoadmapService().seedInitialData();
       }
 
       return credential;
     } catch (e) {
-      print('Error Google Sign-In: $e');
+      debugPrint('Error Google Sign-In: $e');
       rethrow;
     }
   }
@@ -223,29 +279,6 @@ class AuthService {
   }
 
   // ============================ PROGRES LESSON ============================
-
-  /// Tandai satu lesson selesai untuk user aktif (membuka lesson berikutnya).
-  Future<void> markLessonCompleted({
-    required String lessonId,
-    String unitId = '',
-  }) async {
-    final uid = currentUser?.uid;
-    if (uid == null || lessonId.isEmpty) return;
-    try {
-      await _firestore
-          .collection('users')
-          .doc(uid)
-          .collection('lesson_progress')
-          .doc(lessonId)
-          .set({
-            'lesson_id': lessonId,
-            'unit_id': unitId,
-            'completed_at': FieldValue.serverTimestamp(),
-          });
-    } catch (e) {
-      print('Gagal menyimpan progres lesson: $e');
-    }
-  }
 
   /// Stream berisi semua lesson_id yang sudah diselesaikan user aktif.
   Stream<Set<String>> get completedLessonsStream {

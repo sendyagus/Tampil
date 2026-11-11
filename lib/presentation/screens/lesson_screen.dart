@@ -98,32 +98,41 @@ class _LessonScreenState extends State<LessonScreen> {
         if (_step == _blocks.length && !_hasAwardedXp) {
           _hasAwardedXp = true;
           if (!widget.rewardAlreadyGiven) {
-            _awardRewardXp();
-            _markLessonDone();
+            _completeLesson();
           }
         }
       });
     }
   }
 
-  /// Simpan progres: lesson ini selesai -> roadmap akan membuka lesson
-  /// berikutnya secara otomatis.
-  void _markLessonDone() {
+  /// Simpan progres dan statistik reward secara atomik agar tidak terduplikasi.
+  Future<void> _completeLesson() async {
     final l = widget.lesson;
     if (l == null || l.lessonId.isEmpty) return;
-    AuthService().markLessonCompleted(lessonId: l.lessonId, unitId: l.unitId);
-  }
-
-  Future<void> _awardRewardXp() async {
-    await AuthService().addXp(10);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('🎉 Selamat! +10 XP berhasil ditambahkan ke akunmu!'),
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    try {
+      final awarded = await AuthService().completeLesson(
+        lessonId: l.lessonId,
+        unitId: l.unitId,
+      );
+      if (!awarded || !mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('🎉 Selamat! +10 XP berhasil ditambahkan ke akunmu!'),
+          backgroundColor: Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      debugPrint('Gagal menyimpan progres lesson: $error');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Progres lesson gagal disimpan. Coba lagi nanti.'),
+          backgroundColor: Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _restart() {
@@ -232,10 +241,7 @@ class _LessonScreenState extends State<LessonScreen> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-      child: LessonButton(
-        label: label,
-        onPressed: enabled ? onTap : null,
-      ),
+      child: LessonButton(label: label, onPressed: enabled ? onTap : null),
     );
   }
 }

@@ -8,25 +8,25 @@ class HeroCardWidget extends StatelessWidget {
   final int currentLesson;
   final int totalLessons;
   final int currentXp;
-  final int targetXp;
   final VoidCallback? onContinuePressed;
 
   const HeroCardWidget({
     super.key,
-    this.streakDays = 5,
-    this.unitName = 'UNIT 1',
-    this.lessonTitle = 'Lesson 5: Speaking',
-    this.lessonSubtitle = 'Daily Communication',
-    this.currentLesson = 4,
-    this.totalLessons = 5,
-    this.currentXp = 20,
-    this.targetXp = 40,
+    this.streakDays = 0,
+    this.unitName = 'ROADMAP',
+    this.lessonTitle = 'Belum ada lesson',
+    this.lessonSubtitle = '',
+    this.currentLesson = 0,
+    this.totalLessons = 0,
+    this.currentXp = 0,
     this.onContinuePressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (currentLesson / totalLessons).clamp(0.0, 1.0);
+    final double progress = totalLessons <= 0
+        ? 0
+        : (currentLesson / totalLessons).clamp(0.0, 1.0);
 
     return Container(
       width: double.infinity,
@@ -191,7 +191,9 @@ class HeroCardWidget extends StatelessWidget {
                       value: progress,
                       minHeight: 8,
                       backgroundColor: Colors.white.withValues(alpha: 0.25),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -219,7 +221,7 @@ class HeroCardWidget extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Target harian $currentXp/$targetXp XP',
+                              'Total $currentXp XP',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,

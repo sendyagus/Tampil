@@ -29,12 +29,13 @@ class ProfileScreen extends StatelessWidget {
         final uid = user?.uid ?? '';
 
         // Ambil nama dari Firestore (Huruf kapital di awal: "arsyad" -> "Arsyad")
-        final rawName = userData?['nama'] ??
+        final rawName =
+            userData?['nama'] ??
             (user?.displayName != null && user!.displayName!.isNotEmpty
                 ? user.displayName!
                 : (user?.email != null
-                    ? user!.email!.split('@').first
-                    : 'User'));
+                      ? user!.email!.split('@').first
+                      : 'User'));
         final displayName = rawName.isNotEmpty
             ? '${rawName[0].toUpperCase()}${rawName.substring(1)}'
             : 'User';
@@ -42,16 +43,20 @@ class ProfileScreen extends StatelessWidget {
         final level = userData?['level'] ?? 'Pemula';
         final streakDays = (userData?['current_streak'] is int)
             ? userData!['current_streak'] as int
-            : 5;
+            : 0;
         final totalXp = (userData?['total_xp'] is int)
             ? userData!['total_xp'] as int
-            : 20;
+            : 0;
         final completedTests = (userData?['completed_tests'] is int)
             ? userData!['completed_tests'] as int
             : 1;
 
-        final targetXp = level == 'Pemula' ? 100 : (level == 'Menengah' ? 300 : 500);
-        final nextRankTitle = level == 'Pemula' ? 'Menengah' : (level == 'Menengah' ? 'Mahir' : 'Master');
+        final targetXp = level == 'Pemula'
+            ? 100
+            : (level == 'Menengah' ? 300 : 500);
+        final nextRankTitle = level == 'Pemula'
+            ? 'Menengah'
+            : (level == 'Menengah' ? 'Mahir' : 'Master');
 
         final tujuanList = userData?['tujuan'] as List<dynamic>?;
         final userGoal = (tujuanList != null && tujuanList.isNotEmpty)
@@ -78,9 +83,7 @@ class ProfileScreen extends StatelessWidget {
                 onSettingsPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => EditProfileScreen(
-                        initialData: userData,
-                      ),
+                      builder: (_) => EditProfileScreen(initialData: userData),
                     ),
                   );
                 },
@@ -88,9 +91,7 @@ class ProfileScreen extends StatelessWidget {
                 onEditAvatarPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => EditProfileScreen(
-                        initialData: userData,
-                      ),
+                      builder: (_) => EditProfileScreen(initialData: userData),
                     ),
                   );
                 },
@@ -150,11 +151,14 @@ class ProfileScreen extends StatelessWidget {
                         final historyItems = historySessions.map((s) {
                           String title = s.caseTitle.trim();
                           if (title.isEmpty) {
-                            if (s.caseId == 'case_001' || s.caseId == 'perkenalan_diri') {
+                            if (s.caseId == 'case_001' ||
+                                s.caseId == 'perkenalan_diri') {
                               title = 'Perkenalan Diri';
-                            } else if (s.caseId == 'case_002' || s.caseId == 'proyek_terlambat') {
+                            } else if (s.caseId == 'case_002' ||
+                                s.caseId == 'proyek_terlambat') {
                               title = 'Menghadapi Proyek Terlambat';
-                            } else if (s.caseId == 'case_003' || s.caseId == 'presentasi_kelas') {
+                            } else if (s.caseId == 'case_003' ||
+                                s.caseId == 'presentasi_kelas') {
                               title = 'Presentasi Ide di Kelas';
                             } else {
                               title = 'Latihan Komunikasi';
@@ -162,7 +166,8 @@ class ProfileScreen extends StatelessWidget {
                           }
 
                           final now = DateTime.now();
-                          final isToday = s.createdAt.year == now.year &&
+                          final isToday =
+                              s.createdAt.year == now.year &&
                               s.createdAt.month == now.month &&
                               s.createdAt.day == now.day;
                           final dateStr = isToday
@@ -362,7 +367,8 @@ class ProfileScreen extends StatelessWidget {
                         }
                       }
                       final now = DateTime.now();
-                      final isToday = s.createdAt.year == now.year &&
+                      final isToday =
+                          s.createdAt.year == now.year &&
                           s.createdAt.month == now.month &&
                           s.createdAt.day == now.day;
                       final dateStr = isToday
@@ -370,8 +376,7 @@ class ProfileScreen extends StatelessWidget {
                           : '${s.createdAt.day}/${s.createdAt.month}/${s.createdAt.year}';
 
                       return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
                         leading: Container(
                           width: 42,
                           height: 42,

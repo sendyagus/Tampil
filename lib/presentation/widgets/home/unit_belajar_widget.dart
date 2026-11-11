@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../../services/roadmap_service.dart';
+
 class UnitBelajarWidget extends StatelessWidget {
+  final List<UnitModel> units;
+  final List<LessonModel> lessons;
+  final Set<String> completedIds;
   final VoidCallback? onViewRoadmapPressed;
 
   const UnitBelajarWidget({
     super.key,
+    required this.units,
+    required this.lessons,
+    required this.completedIds,
     this.onViewRoadmapPressed,
   });
 
@@ -50,77 +58,70 @@ class UnitBelajarWidget extends StatelessWidget {
         ),
         const SizedBox(height: 14),
 
-        // Horizontal Row of 3 Unit Cards
-        Row(
-          children: [
-            // Unit 1: Daily (Active)
-            Expanded(
-              child: _buildUnitCard(
-                backgroundColor: const Color(0xFFEEF2FF),
-                borderColor: const Color(0xFFC7D2FE),
-                icon: Icons.chat_bubble_outline_rounded,
-                iconColor: const Color(0xFF4F46E5),
-                title: 'Daily',
-                statusWidget: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    '2/5',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF4F46E5),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Unit 2: Peer (Locked)
-            Expanded(
-              child: _buildUnitCard(
-                backgroundColor: const Color(0xFFF5F3FF),
-                borderColor: const Color(0xFFDDD6FE),
-                icon: Icons.groups_outlined,
-                iconColor: const Color(0xFF8B5CF6),
-                title: 'Peer',
-                statusWidget: Text(
-                  'Terkunci',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-
-            // Unit 3: Public (Locked)
-            Expanded(
-              child: _buildUnitCard(
-                backgroundColor: const Color(0xFFECFEFF),
-                borderColor: const Color(0xFFA5F3FC),
-                icon: Icons.campaign_outlined,
-                iconColor: const Color(0xFF06B6D4),
-                title: 'Public',
-                statusWidget: Text(
-                  'Terkunci',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+        if (units.isEmpty)
+          const Text(
+            'Belum ada modul yang dipublikasikan.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+          )
+        else
+          Row(
+            children: [
+              for (var i = 0; i < units.length && i < 3; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: _buildModuleCard(i)),
+              ],
+            ],
+          ),
       ],
+    );
+  }
+
+  Widget _buildModuleCard(int index) {
+    const backgrounds = [
+      Color(0xFFEEF2FF),
+      Color(0xFFF5F3FF),
+      Color(0xFFECFEFF),
+    ];
+    const borders = [Color(0xFFC7D2FE), Color(0xFFDDD6FE), Color(0xFFA5F3FC)];
+    const icons = [
+      Icons.chat_bubble_outline_rounded,
+      Icons.groups_outlined,
+      Icons.campaign_outlined,
+    ];
+    const iconColors = [
+      Color(0xFF4F46E5),
+      Color(0xFF8B5CF6),
+      Color(0xFF06B6D4),
+    ];
+    final unit = units[index];
+    final unitLessons = lessons
+        .where((lesson) => lesson.unitId == unit.unitId)
+        .toList();
+    final completedCount = unitLessons
+        .where((lesson) => completedIds.contains(lesson.lessonId))
+        .length;
+
+    return _buildUnitCard(
+      backgroundColor: backgrounds[index],
+      borderColor: borders[index],
+      icon: icons[index],
+      iconColor: iconColors[index],
+      title: unit.nama,
+      statusWidget: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          '$completedCount/${unitLessons.length}',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: iconColors[index],
+          ),
+        ),
+      ),
     );
   }
 
@@ -152,11 +153,7 @@ class UnitBelajarWidget extends StatelessWidget {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 21,
-            ),
+            child: Icon(icon, color: iconColor, size: 21),
           ),
           const SizedBox(height: 8),
 
