@@ -31,18 +31,47 @@ class ProfileHeaderCard extends StatelessWidget {
     this.onEditAvatarPressed,
   });
 
-  ImageProvider _getAvatarProvider(String? url) {
+  /// Null bila user belum punya foto -> ditampilkan inisial nama,
+  /// BUKAN foto stok orang lain.
+  ImageProvider? _getAvatarProvider(String? url) {
     if (url != null && url.startsWith('data:image')) {
       try {
         final base64Str = url.split(',').last;
         return MemoryImage(base64Decode(base64Str));
-      } catch (_) {}
+      } catch (_) {
+        return null;
+      }
     }
     if (url != null && url.isNotEmpty) {
       return NetworkImage(url);
     }
-    return const NetworkImage(
-      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
+    return null;
+  }
+
+  /// Avatar user: foto asli bila ada, jika tidak tampilkan inisial nama.
+  Widget _buildAvatar() {
+    final provider = _getAvatarProvider(avatarUrl);
+    if (provider != null) {
+      return CircleAvatar(
+        radius: 42,
+        backgroundColor: const Color(0xFFE2E8F0),
+        backgroundImage: provider,
+      );
+    }
+    final initial = userName.trim().isNotEmpty
+        ? userName.trim()[0].toUpperCase()
+        : 'U';
+    return CircleAvatar(
+      radius: 42,
+      backgroundColor: Colors.white.withValues(alpha: 0.25),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          fontSize: 30,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
     );
   }
 
@@ -64,10 +93,7 @@ class ProfileHeaderCard extends StatelessWidget {
               bottomRight: Radius.circular(32),
             ),
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF4F46E5),
-                Color(0xFF7C3AED),
-              ],
+              colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -110,46 +136,42 @@ class ProfileHeaderCard extends StatelessWidget {
               GestureDetector(
                 onTap: onEditAvatarPressed,
                 child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 42,
-                      backgroundColor: const Color(0xFFE2E8F0),
-                      backgroundImage: _getAvatarProvider(avatarUrl),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: const Icon(
-                        Icons.edit_rounded,
-                        color: Colors.white,
-                        size: 14,
+                      child: _buildAvatar(),
+                    ),
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B5CF6),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          color: Colors.white,
+                          size: 14,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
               const SizedBox(height: 12),
 
               // User Name
@@ -175,7 +197,10 @@ class ProfileHeaderCard extends StatelessWidget {
 
               // Level Pill Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -233,7 +258,9 @@ class ProfileHeaderCard extends StatelessWidget {
                       value: progressRatio,
                       minHeight: 6,
                       backgroundColor: Colors.white.withValues(alpha: 0.3),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -271,11 +298,7 @@ class ProfileHeaderCard extends StatelessWidget {
                   value: '$streakDays',
                   label: 'Hari streak',
                 ),
-                Container(
-                  height: 32,
-                  width: 1,
-                  color: const Color(0xFFF1F5F9),
-                ),
+                Container(height: 32, width: 1, color: const Color(0xFFF1F5F9)),
                 // Stat 2: Total XP
                 _buildStatColumn(
                   icon: Icons.bolt_rounded,
@@ -283,11 +306,7 @@ class ProfileHeaderCard extends StatelessWidget {
                   value: '$totalXp',
                   label: 'Total XP',
                 ),
-                Container(
-                  height: 32,
-                  width: 1,
-                  color: const Color(0xFFF1F5F9),
-                ),
+                Container(height: 32, width: 1, color: const Color(0xFFF1F5F9)),
                 // Stat 3: Tes selesai
                 _buildStatColumn(
                   icon: Icons.mic_rounded,

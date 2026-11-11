@@ -16,6 +16,21 @@ import '../widgets/profile/pengaturan_widget.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  /// Foto profil asli user: prioritas field Firestore 'photo_url'/'foto_url'
+  /// (disimpan halaman edit profil), lalu photoURL dari Auth. Null bila kosong.
+  static String? _resolvePhotoUrl(
+    Map<String, dynamic>? userData,
+    String? authPhotoUrl,
+  ) {
+    for (final key in const ['photo_url', 'foto_url']) {
+      final v = userData?[key];
+      if (v is String && v.isNotEmpty) return v;
+    }
+    return (authPhotoUrl != null && authPhotoUrl.isNotEmpty)
+        ? authPhotoUrl
+        : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
@@ -49,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
             : 0;
         final completedTests = (userData?['completed_tests'] is int)
             ? userData!['completed_tests'] as int
-            : 1;
+            : 0;
 
         final targetXp = level == 'Pemula'
             ? 100
@@ -87,7 +102,9 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   );
                 },
-                avatarUrl: userData?['photo_url'] as String?,
+                // Foto asli user: field photo_url/foto_url (hasil edit profil),
+                // fallback foto Auth. Bila kosong, header menampilkan inisial.
+                avatarUrl: _resolvePhotoUrl(userData, user?.photoURL),
                 onEditAvatarPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -106,24 +123,52 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 2. Communication Index Section (LIVE SKOR DARI test_sessions)
-                    FutureBuilder<TestSessionModel?>(
+                    // 2. Communication Index Section (LIVE DARI riwayat
+                    // test_sessions user: skor terbaru, selisih poin, dan
+                    // grafik tren nyata — bukan angka/histogram dummy)
+                    FutureBuilder<List<TestSessionModel>>(
                       future: uid.isNotEmpty
-                          ? TestSessionService().getLatestTestSession(uid)
+                          ? TestSessionService().getUserHistory(uid)
                           : null,
-                      builder: (context, sessionSnap) {
-                        final session = sessionSnap.data;
-                        final score = session != null
-                            ? session.communicationIndex.toInt()
-                            : 70;
-                        final status = session != null
-                            ? session.kategoriSkor
-                            : 'Baik';
+                      builder: (context, historyIdxSnap) {
+                        final history =
+                            historyIdxSnap.data ?? const <TestSessionModel>[];
+                        final newest = history.isNotEmpty
+                            ? history.first
+                            : null;
+                        final previous = history.length > 1 ? history[1] : null;
+
+                        final score = newest != null
+                            ? newest.communicationIndex.toInt()
+                            : 0;
+                        final status = newest != null
+                            ? newest.kategoriSkor
+                            : 'Belum ada data';
+
+                        final String pointsLabel;
+                        if (newest != null && previous != null) {
+                          final diff =
+                              newest.communicationIndex.toInt() -
+                              previous.communicationIndex.toInt();
+                          pointsLabel = diff >= 0
+                              ? '↗ +$diff poin'
+                              : '↘ $diff poin';
+                        } else if (newest != null) {
+                          pointsLabel = '↗ Tes pertama';
+                        } else {
+                          pointsLabel = 'Belum ada tes';
+                        }
+
+                        // Grafik butuh urutan tertua -> terbaru.
+                        final scoreSeries = history.reversed
+                            .map((s) => s.communicationIndex.toInt())
+                            .toList();
 
                         return ProfileCommunicationIndexWidget(
                           score: score,
                           statusLabel: status,
-                          pointsAdded: '↗ +6 poin',
+                          pointsAdded: pointsLabel,
+                          scoreHistory: scoreSeries,
                         );
                       },
                     ),

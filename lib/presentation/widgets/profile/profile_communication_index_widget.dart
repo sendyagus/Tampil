@@ -5,11 +5,16 @@ class ProfileCommunicationIndexWidget extends StatefulWidget {
   final String statusLabel;
   final String pointsAdded;
 
+  /// Skor communication index per tes, urut tertua -> terbaru (dari
+  /// collection test_sessions). Dipakai untuk menggambar grafik tren nyata.
+  final List<int> scoreHistory;
+
   const ProfileCommunicationIndexWidget({
     super.key,
-    this.score = 68,
-    this.statusLabel = 'Baik',
-    this.pointsAdded = '↗ +8 poin',
+    this.score = 0,
+    this.statusLabel = 'Belum ada data',
+    this.pointsAdded = '',
+    this.scoreHistory = const [],
   });
 
   @override
@@ -75,8 +80,9 @@ class _ProfileCommunicationIndexWidgetState
                         tab,
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
                           color: isSelected
                               ? Colors.white
                               : const Color(0xFF64748B),
@@ -129,70 +135,109 @@ class _ProfileCommunicationIndexWidgetState
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0F7FA),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  widget.pointsAdded,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF00ACC1),
+              // Badge selisih poin; disembunyikan bila belum ada data.
+              if (widget.pointsAdded.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F7FA),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    widget.pointsAdded,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF00ACC1),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Chart Section
-          SizedBox(
-            height: 70,
-            width: double.infinity,
-            child: CustomPaint(
-              painter: _ProfileChartPainter(),
-            ),
-          ),
+          // Chart Section — grafik tren NYATA dari riwayat tes user
+          _buildChart(),
           const SizedBox(height: 8),
 
-          // X-Axis Labels Row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Tes 1', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-              Text('Tes 3', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-              Text('Tes 5', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-              Text('Tes 8', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-              Text('Tes 10', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-              Text(
-                'Terbaru',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
-                ),
-              ),
-            ],
-          ),
+          // X-Axis Labels Row — dibuat dinamis dari jumlah tes
+          _buildAxisLabels(),
         ],
       ),
+    );
+  }
+
+  Widget _buildChart() {
+    final history = widget.scoreHistory;
+    if (history.length < 2) {
+      // Belum cukup data untuk tren; tampilkan placeholder netral.
+      return Container(
+        height: 70,
+        alignment: Alignment.center,
+        child: Text(
+          history.isEmpty
+              ? 'Belum ada riwayat tes.'
+              : 'Grafik tren muncul setelah minimal 2 tes.',
+          style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+        ),
+      );
+    }
+    return SizedBox(
+      height: 70,
+      width: double.infinity,
+      child: CustomPaint(painter: _ProfileChartPainter(history)),
+    );
+  }
+
+  Widget _buildAxisLabels() {
+    final history = widget.scoreHistory;
+    if (history.length < 2) return const SizedBox.shrink();
+
+    // Maksimal 6 label, disebar merata di sepanjang sumbu.
+    final count = history.length <= 6 ? history.length : 6;
+    final labels = <Widget>[];
+    for (int i = 0; i < count; i++) {
+      final idx = (i * (history.length - 1) / (count - 1)).round();
+      final isLast = i == count - 1;
+      labels.add(
+        Text(
+          isLast ? 'Terbaru' : 'Tes ${idx + 1}',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isLast ? FontWeight.bold : FontWeight.w400,
+            color: isLast ? const Color(0xFF6366F1) : const Color(0xFF94A3B8),
+          ),
+        ),
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: labels,
     );
   }
 }
 
 class _ProfileChartPainter extends CustomPainter {
+  /// Skor communication index (0-100), urut tertua -> terbaru.
+  final List<int> values;
+
+  _ProfileChartPainter(this.values);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final points = [
-      Offset(0, size.height * 0.75),
-      Offset(size.width * 0.2, size.height * 0.65),
-      Offset(size.width * 0.4, size.height * 0.55),
-      Offset(size.width * 0.6, size.height * 0.50),
-      Offset(size.width * 0.8, size.height * 0.40),
-      Offset(size.width, size.height * 0.20),
+    final n = values.length;
+    // Titik grafik NYATA: X tersebar merata, Y dari skor (0-100) dipetakan
+    // ke tinggi area dengan padding atas/bawah kecil.
+    final points = <Offset>[
+      for (int i = 0; i < n; i++)
+        Offset(
+          n == 1 ? size.width / 2 : size.width * i / (n - 1),
+          size.height * 0.9 -
+              (values[i].clamp(0, 100) / 100) * size.height * 0.8,
+        ),
     ];
 
     final path = Path();
@@ -203,7 +248,14 @@ class _ProfileChartPainter extends CustomPainter {
       final p2 = points[i + 1];
       final controlP1 = Offset(p1.dx + (p2.dx - p1.dx) / 2, p1.dy);
       final controlP2 = Offset(p1.dx + (p2.dx - p1.dx) / 2, p2.dy);
-      path.cubicTo(controlP1.dx, controlP1.dy, controlP2.dx, controlP2.dy, p2.dx, p2.dy);
+      path.cubicTo(
+        controlP1.dx,
+        controlP1.dy,
+        controlP2.dx,
+        controlP2.dy,
+        p2.dx,
+        p2.dy,
+      );
     }
 
     // Fill path below
@@ -222,7 +274,9 @@ class _ProfileChartPainter extends CustomPainter {
     );
 
     final fillPaint = Paint()
-      ..shader = fillGradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..shader = fillGradient.createShader(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+      )
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(fillPath, fillPaint);
@@ -255,5 +309,7 @@ class _ProfileChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ProfileChartPainter oldDelegate) =>
+      oldDelegate.values.length != values.length ||
+      oldDelegate.values.join(',') != values.join(',');
 }
