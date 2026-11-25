@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../utils/transition_utils.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class ConsentScreen extends StatefulWidget {
   final String? email;
@@ -53,15 +54,16 @@ class _ConsentScreenState extends State<ConsentScreen> {
           ),
         );
 
+        // Arahkan akun baru ke onboarding terlebih dahulu
         Navigator.of(context).pushAndRemoveUntil(
-          DissolvePageRoute(builder: (_) => const HomeScreen()),
+          DissolvePageRoute(builder: (_) => const OnboardingScreen()),
           (route) => false,
         );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal mendaftar: ${e.toString().replaceAll("Exception:", "").trim()}'),
+            content: Text('Gagal mendaftar: ${AuthService.getErrorMessage(e, isRegister: true)}'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),

@@ -7,6 +7,7 @@ import 'consent_screen.dart';
 import 'age_failed_screen.dart';
 import 'login_screen.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -104,15 +105,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        final hasOnboarded =
+            await _authService.hasCompletedOnboarding(credential.user!.uid);
+        if (!mounted) return;
+        if (hasOnboarded) {
+          context.pushDissolveReplacement((_) => const HomeScreen());
+        } else {
+          context.pushDissolveReplacement((_) => const OnboardingScreen());
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal login Google: $e'),
+            content: Text('Gagal login Google: ${AuthService.getErrorMessage(e)}'),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),

@@ -22,8 +22,31 @@ from pydantic import BaseModel
 
 
 # ============================================================
-# KONFIGURASI
+# KONFIGURASI & PEMUATAN .ENV OTOMATIS
 # ============================================================
+
+def _muat_env_manual():
+    for jalur in [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
+        os.path.join(os.getcwd(), ".env"),
+        ".env",
+    ]:
+        if os.path.isfile(jalur):
+            try:
+                with open(jalur, "r", encoding="utf-8") as f:
+                    for baris in f:
+                        baris = baris.strip()
+                        if baris and not baris.startswith("#") and "=" in baris:
+                            k, v = baris.split("=", 1)
+                            k = k.strip()
+                            v = v.strip().strip('"').strip("'")
+                            if k and v and k not in os.environ:
+                                os.environ[k] = v
+            except Exception:
+                pass
+
+_muat_env_manual()
+
 
 SAMPLE_RATE = 16000
 BATAS_BYTE = 24 * 1024 * 1024

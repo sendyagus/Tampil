@@ -57,3 +57,7 @@ server/data/*.webm
 server/data/*.m4a
 server/data/*.mp3
 server/debug_transkrip.log
+
+# Build output & APK
+*.apk
+app-release.apk

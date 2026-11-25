@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../services/auth_service.dart';
 import '../auth/login_screen.dart';
+import '../home_screen.dart';
 import '../../utils/transition_utils.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -43,8 +45,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _goHome() {
-    context.pushDissolveReplacement((_) => const LoginScreen());
+  Future<void> _goHome() async {
+    // Simpan tanda bahwa user telah menyelesaikan onboarding
+    await AuthService().completeOnboarding();
+
+    if (!mounted) return;
+
+    // Alur baru: user sudah login -> langsung menuju HomeScreen
+    final currentUser = AuthService().currentUser;
+    if (currentUser != null) {
+      context.pushDissolveReplacement((_) => const HomeScreen());
+    } else {
+      context.pushDissolveReplacement((_) => const LoginScreen());
+    }
   }
 
   @override
@@ -60,10 +73,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Back button
+            // Header bar: Back button & Lewati button
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 16, 0),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   if (_page > 0)
                     IconButton(
@@ -72,6 +86,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Icons.chevron_left_rounded,
                         size: 30,
                         color: Color(0xFF0F172A),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 48),
+                  if (_page < 4)
+                    TextButton(
+                      onPressed: _goHome,
+                      child: const Text(
+                        'Lewati',
+                        style: TextStyle(
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
                     )
                   else

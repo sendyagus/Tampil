@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 int _readInt(dynamic value) {
   if (value is int) return value;
@@ -66,6 +67,7 @@ class AuthService {
         'kuota_feedback': 3,
         'kuota_feedback_terpakai': 0,
         'sesi_test_hari_ini': 0,
+        'has_completed_onboarding': false,
         'created_at': FieldValue.serverTimestamp(),
         'last_login_at': FieldValue.serverTimestamp(),
       });
@@ -112,6 +114,32 @@ class AuthService {
     } catch (e) {
       debugPrint('Error update user profile: ');
       rethrow;
+    }
+  }
+
+  /// Cek apakah user sudah menyelesaikan onboarding
+  Future<bool> hasCompletedOnboarding([String? uid]) async {
+    final targetUid = uid ?? currentUser?.uid;
+    if (targetUid == null) return false;
+    try {
+      final doc = await _firestore.collection('users').doc(targetUid).get();
+      return doc.data()?['has_completed_onboarding'] == true;
+    } catch (e) {
+      debugPrint('Error cek onboarding: $e');
+      return true; // Default true jika gagal fetch agar tidak menghambat user
+    }
+  }
+
+  /// Tandai onboarding selesai untuk user
+  Future<void> completeOnboarding([String? uid]) async {
+    final targetUid = uid ?? currentUser?.uid;
+    if (targetUid == null) return;
+    try {
+      await _firestore.collection('users').doc(targetUid).set({
+        'has_completed_onboarding': true,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error completeOnboarding: $e');
     }
   }
 
@@ -228,17 +256,38 @@ class AuthService {
     return credential;
   }
 
-  // Sign In dengan Google (Pop-up Akun Google Resmi Firebase)
+  // Sign In dengan Google (Mendukung Web & Mobile Android/iOS)
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      googleProvider.addScope('email');
-      googleProvider.addScope('profile');
+      UserCredential credential;
 
-      // Membuka pop-up login Google bawaan Firebase
-      final UserCredential credential = await _auth.signInWithPopup(
-        googleProvider,
-      );
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+
+        // Membuka pop-up login Google bawaan Firebase (Web)
+        credential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        // Alur resmi Google Sign-In untuk Android & iOS
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+        if (googleUser == null) {
+          // User membatalkan dialog pemilihan akun Google
+          return null;
+        }
+
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final OAuthCredential authCredential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        credential = await _auth.signInWithCredential(authCredential);
+      }
 
       if (credential.user != null) {
         // Otomatis sinkronkan profil user ke Firestore
@@ -257,6 +306,11 @@ class AuthService {
 
   // Sign Out
   Future<void> signOut() async {
+    try {
+      if (!kIsWeb) {
+        await GoogleSignIn().signOut();
+      }
+    } catch (_) {}
     await _auth.signOut();
   }
 
@@ -292,5 +346,54 @@ class AuthService {
           .snapshots()
           .map((snap) => snap.docs.map((d) => d.id).toSet());
     });
+  }
+
+  // ============================ PENANGANAN ERROR ============================
+
+  /// Mengubah kode error teknis Firebase menjadi pesan bahasa Indonesia yang ramah & mudah dipahami.
+  static String getErrorMessage(dynamic error, {bool isRegister = false}) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'user-not-found':
+          return 'Akun belum terdaftar. Silakan buat akun terlebih dahulu.';
+        case 'wrong-password':
+          return 'Kata sandi salah. Silakan periksa kembali kata sandi Anda.';
+        case 'invalid-credential':
+          return isRegister
+              ? 'Data pendaftaran tidak valid. Silakan periksa kembali.'
+              : 'Email atau kata sandi salah. Pastikan akun sudah terdaftar dan data yang dimasukkan benar.';
+        case 'email-already-in-use':
+          return 'Email ini sudah terdaftar. Silakan masuk (login) atau gunakan email lain.';
+        case 'invalid-email':
+          return 'Format email tidak valid. Contoh yang benar: nama@email.com';
+        case 'weak-password':
+          return 'Kata sandi terlalu lemah. Gunakan minimal 8 karakter.';
+        case 'user-disabled':
+          return 'Akun ini telah dinonaktifkan. Silakan hubungi dukungan kami.';
+        case 'too-many-requests':
+          return 'Terlalu banyak percobaan gagal. Akun diblokir sementara demi keamanan, silakan coba lagi beberapa saat.';
+        case 'network-request-failed':
+          return 'Koneksi internet terputus. Pastikan perangkat Anda terhubung ke internet.';
+        case 'operation-not-allowed':
+          return 'Metode autentikasi ini sedang dinonaktifkan di sistem.';
+        case 'popup-closed-by-user':
+        case 'canceled':
+          return 'Proses login dibatalkan.';
+        case 'account-exists-with-different-credential':
+          return 'Email ini sudah terdaftar dengan metode login yang berbeda.';
+        default:
+          final msg = error.message;
+          if (msg != null && msg.isNotEmpty) {
+            return msg;
+          }
+          return 'Terjadi kendala saat memproses (${error.code}). Silakan coba lagi.';
+      }
+    }
+
+    final errStr = error.toString().replaceAll('Exception:', '').trim();
+    if (errStr.contains('network') || errStr.contains('SocketException')) {
+      return 'Koneksi internet bermasalah. Pastikan perangkat Anda terhubung ke internet.';
+    }
+    return errStr;
   }
 }

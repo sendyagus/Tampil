@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../utils/transition_utils.dart';
+import 'auth/login_screen.dart';
 import 'home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
@@ -31,10 +32,16 @@ class _SplashScreenState extends State<SplashScreen>
   late final Animation<double> _taglineOpacity;
   late final Animation<Offset> _taglineOffset;
   late final Animation<double> _screenFadeOut;
+  Future<bool>? _onboardingCheckFuture;
 
   @override
   void initState() {
     super.initState();
+
+    final currentUser = AuthService().currentUser;
+    if (currentUser != null) {
+      _onboardingCheckFuture = AuthService().hasCompletedOnboarding(currentUser.uid);
+    }
 
     _controller = AnimationController(
       vsync: this,
@@ -85,14 +92,26 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed && mounted) {
-        // Cek apakah user sudah memiliki sesi login aktif
+        // Cek sesi login aktif
         final currentUser = AuthService().currentUser;
-        if (kBypassAuthTemporarily || currentUser != null) {
+        if (kBypassAuthTemporarily) {
           if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
+        } else if (currentUser != null) {
+          // User sudah login, cek apakah sudah menyelesaikan onboarding
+          final hasOnboarded = _onboardingCheckFuture != null
+              ? await _onboardingCheckFuture!
+              : await AuthService().hasCompletedOnboarding(currentUser.uid);
+          if (!mounted) return;
+          if (hasOnboarded) {
+            context.pushDissolveReplacement((_) => const HomeScreen());
+          } else {
+            context.pushDissolveReplacement((_) => const OnboardingScreen());
+          }
         } else {
-          if (mounted) context.pushDissolveReplacement((_) => const OnboardingScreen());
+          // User belum login -> masuk ke LoginScreen dulu
+          if (mounted) context.pushDissolveReplacement((_) => const LoginScreen());
         }
       }
     });

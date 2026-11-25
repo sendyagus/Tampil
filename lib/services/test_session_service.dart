@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'ai_analysis_service.dart';
+import 'quota_service.dart';
 
 /// Model komprehensif data satu sesi tes komunikasi
 class TestSessionModel {
@@ -233,6 +234,9 @@ class TestSessionService {
         communicationIndex: result.communicationIndex,
         scoreLabel: result.scoreLabel,
       );
+
+      // 3. Otomatis kurangi kuota harian sesi tes & feedback AI
+      await QuotaService().consumeQuotaAfterTest(userId);
 
       return docRef.id;
     } catch (e) {

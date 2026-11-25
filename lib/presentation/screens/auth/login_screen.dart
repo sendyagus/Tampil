@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 
@@ -60,14 +61,20 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
+      if (mounted) {
+        final hasOnboarded = await _authService.hasCompletedOnboarding();
+        if (!mounted) return;
+        if (hasOnboarded) {
+          context.pushDissolveReplacement((_) => const HomeScreen());
+        } else {
+          context.pushDissolveReplacement((_) => const OnboardingScreen());
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Gagal login: ${e.toString().replaceAll("Exception:", "").trim()}',
-          ),
+          content: Text(AuthService.getErrorMessage(e)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -91,17 +98,21 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Otomatis berpindah ke HomeScreen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        final hasOnboarded =
+            await _authService.hasCompletedOnboarding(credential.user!.uid);
+        if (!mounted) return;
+        if (hasOnboarded) {
+          context.pushDissolveReplacement((_) => const HomeScreen());
+        } else {
+          context.pushDissolveReplacement((_) => const OnboardingScreen());
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Gagal login Google: ${e.toString().replaceAll("Exception:", "").trim()}',
+              'Gagal login Google: ${AuthService.getErrorMessage(e)}',
             ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
+import '../../services/quota_service.dart';
 import '../../services/test_session_service.dart';
 import 'test/case_study_selection_screen.dart';
 import 'test/microphone_permission_screen.dart';
@@ -80,7 +81,7 @@ class TestScreen extends StatelessWidget {
                     top: topPadding + 88,
                     left: 20,
                     right: 20,
-                    child: _buildQuotaCard(),
+                    child: _buildQuotaCard(userId),
                   ),
                 ],
               ),
@@ -111,7 +112,7 @@ class TestScreen extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   // CARD 3: KARTU STUDI KASUS UTAMA
-                  _buildFeaturedCaseCard(context),
+                  _buildFeaturedCaseCard(context, userId),
                   const SizedBox(height: 20),
 
                   // CARD 4: HASIL TERAKHIR
@@ -128,128 +129,141 @@ class TestScreen extends StatelessWidget {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // CARD 1: KUOTA HARIAN (Sesi test hari ini & Feedback AI hari ini)
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildQuotaCard() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4F46E5).withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+  Widget _buildQuotaCard(String userId) {
+    return StreamBuilder<DailyQuota>(
+      stream: QuotaService().getDailyQuotaStream(userId),
+      initialData: DailyQuota.initial,
+      builder: (context, snapshot) {
+        final quota = snapshot.data ?? DailyQuota.initial;
+        final testRemaining = quota.testRemaining;
+        final feedbackRemaining = quota.feedbackRemaining;
+
+        final isTestOut = testRemaining <= 0;
+        final isFeedbackOut = feedbackRemaining <= 0;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.06),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      child: Column(
-        children: [
-          // Baris 1: Sesi test hari ini
-          Row(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEEF2FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.mic_none_rounded,
-                  color: Color(0xFF4F46E5),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Text(
-                  'Sesi test hari ini',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+              // Baris 1: Sesi test hari ini
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isTestOut ? const Color(0xFFFEF2F2) : const Color(0xFFEEF2FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.mic_none_rounded,
+                      color: isTestOut ? const Color(0xFFEF4444) : const Color(0xFF4F46E5),
+                      size: 20,
+                    ),
                   ),
-                ),
-              ),
-              const Text(
-                '5 tersisa',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-            ],
-          ),
-
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: Color(0xFFF1F5F9), height: 1, thickness: 1),
-          ),
-
-          // Baris 2: Feedback AI hari ini
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5F3FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Color(0xFF7C3AED),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Text(
-                  'Feedback AI hari ini',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'Sesi test hari ini',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
                   ),
-                ),
+                  Text(
+                    isTestOut ? 'Habis (0)' : '$testRemaining tersisa',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: isTestOut ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
               ),
-              const Text(
-                '3 tersisa',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
-                ),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(color: Color(0xFFF1F5F9), height: 1, thickness: 1),
+              ),
+
+              // Baris 2: Feedback AI hari ini
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isFeedbackOut ? const Color(0xFFFEF2F2) : const Color(0xFFF5F3FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: isFeedbackOut ? const Color(0xFFEF4444) : const Color(0xFF7C3AED),
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      'Feedback AI hari ini',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    isFeedbackOut ? 'Habis (0)' : '$feedbackRemaining tersisa',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w800,
+                      color: isFeedbackOut ? const Color(0xFFEF4444) : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Baris 3: Reset info
+              Row(
+                children: const [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 14,
+                    color: Color(0xFF94A3B8),
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Reset pukul 01.00 WIB',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Baris 3: Reset info
-          Row(
-            children: const [
-              Icon(
-                Icons.schedule_rounded,
-                size: 14,
-                color: Color(0xFF94A3B8),
-              ),
-              SizedBox(width: 6),
-              Text(
-                'Reset pukul 01.00 WIB',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: Color(0xFF94A3B8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -304,7 +318,7 @@ class TestScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Latihan singkat Â· tidak dihitung sebagai sesi',
+                  'Latihan singkat · tidak dihitung sebagai sesi',
                   style: TextStyle(
                     fontSize: 11.5,
                     color: Color(0xFF64748B),
@@ -316,7 +330,19 @@ class TestScreen extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           InkWell(
-            onTap: () {
+            onTap: () async {
+              final user = AuthService().currentUser;
+              if (user != null) {
+                final q = await QuotaService().getOrSyncQuota(user.uid);
+                if (!q.hasTestQuota) {
+                  if (context.mounted) {
+                    QuotaService.showQuotaExceededDialog(context);
+                  }
+                  return;
+                }
+              }
+              if (!context.mounted) return;
+
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => MicrophonePermissionScreen(
@@ -366,7 +392,7 @@ class TestScreen extends StatelessWidget {
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // CARD 3: STUDI KASUS UTAMA (Menyela diskusi dengan sopan)
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildFeaturedCaseCard(BuildContext context) {
+  Widget _buildFeaturedCaseCard(BuildContext context, String userId) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -429,12 +455,23 @@ class TestScreen extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // Tombol Mulai test âž”
+          // Tombol Mulai test ➔ (Dengan validasi kuota)
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                if (userId.isNotEmpty) {
+                  final q = await QuotaService().getOrSyncQuota(userId);
+                  if (!q.hasTestQuota) {
+                    if (context.mounted) {
+                      QuotaService.showQuotaExceededDialog(context);
+                    }
+                    return;
+                  }
+                }
+                if (!context.mounted) return;
+
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => MicrophonePermissionScreen(
