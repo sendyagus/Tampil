@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import '../../../services/ai_analysis_service.dart';
+import '../../../services/auth_service.dart';
 import 'ai_consent_screen.dart';
 import 'score_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -37,10 +38,12 @@ class ResultScreen extends StatelessWidget {
   int get effectiveScore => analysisResult?.communicationIndex ?? score;
   String get effectiveScoreLabel => analysisResult?.scoreLabel ?? scoreLabel;
   int get effectiveWpm => analysisResult?.wordsPerMinute ?? wordsPerMinute;
-  int get effectiveFiller => analysisResult?.fillerWordsCount ?? fillerPerMinute;
+  int get effectiveFiller =>
+      analysisResult?.fillerWordsCount ?? fillerPerMinute;
   String get effectivePoinKunci => analysisResult?.keyPointsRatio ?? poinKunci;
   String get effectiveKekuatan => analysisResult?.strengthText ?? kekuatan;
-  String get effectivePerluDiperbaiki => analysisResult?.improvementText ?? perluDiperbaiki;
+  String get effectivePerluDiperbaiki =>
+      analysisResult?.improvementText ?? perluDiperbaiki;
 
   static const Color _indigo = Color(0xFF5B50E8);
 
@@ -92,38 +95,74 @@ class ResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
 
-                        // Feedback AI
-                        _buildFeedbackCard(),
-                        const SizedBox(height: 28),
+                        // Feedback AI (kartu + tombol dengan kuota nyata 3/hari)
+                        FutureBuilder<FeedbackQuotaStatus>(
+                          future: AuthService().feedbackQuotaStatus(),
+                          builder: (context, snap) {
+                            final quota =
+                                snap.data ??
+                                FeedbackQuotaStatus(
+                                  max: maxFeedback,
+                                  used: (maxFeedback - sisaFeedback).clamp(
+                                    0,
+                                    maxFeedback,
+                                  ),
+                                );
+                            return Column(
+                              children: [
+                                _buildFeedbackCard(quota),
+                                const SizedBox(height: 28),
 
-                        // Tombol Tampilkan Feedback AI
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AiConsentScreen(analysisResult: analysisResult),
+                                // Tombol Tampilkan Feedback AI
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 54,
+                                  child: ElevatedButton(
+                                    onPressed: quota.habis
+                                        ? () => ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Kuota feedback AI hari ini habis. '
+                                                    'Reset otomatis pukul 01.00 WIB.',
+                                                  ),
+                                                  backgroundColor:
+                                                      Colors.redAccent,
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                ),
+                                              )
+                                        : () => Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => AiConsentScreen(
+                                                analysisResult: analysisResult,
+                                              ),
+                                            ),
+                                          ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: quota.habis
+                                          ? const Color(0xFFCBD5E1)
+                                          : _indigo,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: Text(
+                                      quota.habis
+                                          ? 'Kuota Feedback Habis'
+                                          : 'Tampilkan Feedback AI',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _indigo,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Tampilkan Feedback AI',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 14),
 
@@ -243,7 +282,9 @@ class ResultScreen extends StatelessWidget {
                   // Badge "Baik"
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 7),
+                      horizontal: 20,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -261,7 +302,9 @@ class ResultScreen extends StatelessWidget {
                   // Badge "+6 poin"
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 7),
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -379,11 +422,7 @@ class ResultScreen extends StatelessWidget {
   }
 
   Widget _buildVerticalDivider() {
-    return Container(
-      width: 1,
-      height: 36,
-      color: const Color(0xFFF1F5F9),
-    );
+    return Container(width: 1, height: 36, color: const Color(0xFFF1F5F9));
   }
 
   // ─────────────────────────────────────────────
@@ -436,17 +475,14 @@ class ResultScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 10),
-            trailing,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 10), trailing],
         ],
       ),
     );
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildFeedbackCard() {
+  Widget _buildFeedbackCard(FeedbackQuotaStatus quota) {
     return _buildInfoCard(
       iconWidget: _buildIconBox(
         Icons.auto_awesome_rounded,
@@ -462,7 +498,7 @@ class ResultScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          'Sisa $sisaFeedback/$maxFeedback hari ini',
+          'Sisa ${quota.remaining}/${quota.max} hari ini',
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
@@ -520,13 +556,7 @@ class _ScoreCirclePainter extends CustomPainter {
         ..strokeWidth = strokeW
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(
-        rect,
-        -math.pi / 2,
-        sweepAngle,
-        false,
-        arcPaint,
-      );
+      canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, arcPaint);
     }
   }
 

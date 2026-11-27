@@ -1,5 +1,8 @@
 fastapi
 uvicorn
 python-multipart
+groq
+numpy
+python-dotenv
 faster-whisper
 jiwer

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../auth/login_screen.dart';
+import '../home_screen.dart';
 import '../../utils/transition_utils.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -44,7 +44,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _goHome() {
-    context.pushDissolveReplacement((_) => const LoginScreen());
+    // Onboarding hanya tampil setelah login, jadi lanjut ke HomeScreen
+    context.pushDissolveReplacement((_) => const HomeScreen());
   }
 
   @override
@@ -169,7 +170,10 @@ class _FasePage extends StatelessWidget {
 
   static const _options = [
     _RadioOption(icon: Icons.school_rounded, label: 'Mahasiswa'),
-    _RadioOption(icon: Icons.person_search_rounded, label: 'Fresh graduate / pencari kerja'),
+    _RadioOption(
+      icon: Icons.person_search_rounded,
+      label: 'Fresh graduate / pencari kerja',
+    ),
     _RadioOption(icon: Icons.work_outline_rounded, label: 'Pekerja muda'),
     _RadioOption(icon: Icons.more_horiz_rounded, label: 'Lainnya'),
   ];
@@ -232,7 +236,10 @@ class _SkillPage extends StatelessWidget {
     _RadioOption(icon: Icons.chat_rounded, label: 'Percakapan sehari-hari'),
     _RadioOption(icon: Icons.groups_rounded, label: 'Diskusi & kerja kelompok'),
     _RadioOption(icon: Icons.bar_chart_rounded, label: 'Presentasi'),
-    _RadioOption(icon: Icons.campaign_rounded, label: 'Public speaking & organisasi'),
+    _RadioOption(
+      icon: Icons.campaign_rounded,
+      label: 'Public speaking & organisasi',
+    ),
   ];
 
   @override
@@ -650,10 +657,7 @@ class _SelectableCard extends StatelessWidget {
                 height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFFCBD5E1),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFFCBD5E1), width: 2),
                 ),
               ),
           ],
@@ -673,11 +677,7 @@ class _BulletItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 22,
-          color: _OnboardingScreenState._primaryBlue,
-        ),
+        Icon(icon, size: 22, color: _OnboardingScreenState._primaryBlue),
         const SizedBox(width: 14),
         Text(
           text,

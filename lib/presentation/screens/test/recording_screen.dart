@@ -52,7 +52,8 @@ class _RecordingScreenState extends State<RecordingScreen>
   late AnimationController _waveController;
   late final AudioRecorder _audioRecorder;
   StreamSubscription<Amplitude>? _amplitudeSub;
-  double _currentVolume = 0.0; // 0.0 (diam/hening/datar) sampai 1.0 (bicara lantang)
+  double _currentVolume =
+      0.0; // 0.0 (diam/hening/datar) sampai 1.0 (bicara lantang)
   double _noiseFloor = -42.0; // Baseline desis suara ruangan dinamis
   int _initSampleCount = 0; // Sampel awal untuk kalibrasi hening awal
   int _silenceFrames = 0; // Penghitung frame berturut-turut saat tidak bersuara
@@ -97,7 +98,8 @@ class _RecordingScreenState extends State<RecordingScreen>
         String path = '';
         if (!kIsWeb) {
           final tempDir = await getTemporaryDirectory();
-          path = '${tempDir.path}/rekaman_${DateTime.now().millisecondsSinceEpoch}.wav';
+          path =
+              '${tempDir.path}/rekaman_${DateTime.now().millisecondsSinceEpoch}.wav';
         }
         final encoder = kIsWeb ? AudioEncoder.opus : AudioEncoder.wav;
         await _audioRecorder.start(
@@ -110,12 +112,11 @@ class _RecordingScreenState extends State<RecordingScreen>
           ),
           path: path,
         );
-
         // Pantau volume mikrofon secara real-time setiap 50ms
         _amplitudeSub?.cancel();
-        _amplitudeSub = _audioRecorder
-            .onAmplitudeChanged(const Duration(milliseconds: 50))
-            .listen((amp) {
+        _amplitudeSub = _audioRecorder.onAmplitudeChanged(const Duration(milliseconds: 50)).listen((
+          amp,
+        ) {
           if (!mounted || _isPaused || !_isRecording) return;
           final db = amp.current; // dBFS: -160 s/d 0
           if (db < -120.0 || db.isNaN || db.isInfinite) return;
@@ -164,7 +165,9 @@ class _RecordingScreenState extends State<RecordingScreen>
           }
 
           if (++_logTick % 20 == 0) {
-            debugPrint('[MIC] dB: ${db.toStringAsFixed(1)}, floor: ${_noiseFloor.toStringAsFixed(1)}, isVoice: $isVoice, vol: ${_currentVolume.toStringAsFixed(2)}');
+            debugPrint(
+              '[MIC] dB: ${db.toStringAsFixed(1)}, floor: ${_noiseFloor.toStringAsFixed(1)}, isVoice: $isVoice, vol: ${_currentVolume.toStringAsFixed(2)}',
+            );
           }
 
           setState(() {
@@ -178,9 +181,20 @@ class _RecordingScreenState extends State<RecordingScreen>
             }
           });
         });
+      } else {
+        // Permission mikrofon ditolak / tidak dideklarasikan di manifest.
+        if (mounted) {
+          _showMicError(
+            'Izin mikrofon ditolak. Aktifkan izin mikrofon '
+            'di Pengaturan aplikasi lalu mulai ulang tes.',
+          );
+        }
+        return;
       }
     } catch (e) {
       debugPrint('[RecordingScreen] Error start audio recording: $e');
+      if (mounted) _showMicError('Mikrofon gagal aktif: $e');
+      return;
     }
 
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -190,6 +204,28 @@ class _RecordingScreenState extends State<RecordingScreen>
         _stopRecording();
       }
     });
+  }
+
+  /// Tampilkan error mikrofon dan kembalikan layar ke state awal (maskot).
+  void _showMicError(String message) {
+    _timer?.cancel();
+    _waveController.stop();
+    _amplitudeSub?.cancel();
+    _amplitudeSub = null;
+    setState(() {
+      _hasStarted = false;
+      _isRecording = false;
+      _isPaused = false;
+      _elapsedSeconds = 0;
+      _currentVolume = 0.0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFDC2626),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _pauseRecording() async {
@@ -292,8 +328,7 @@ class _RecordingScreenState extends State<RecordingScreen>
     return '$m:$sec';
   }
 
-  double get _progressFraction =>
-      _elapsedSeconds / widget.maxDurationSeconds;
+  double get _progressFraction => _elapsedSeconds / widget.maxDurationSeconds;
 
   double get _remainingFraction => 1.0 - _progressFraction;
 
@@ -333,7 +368,8 @@ class _RecordingScreenState extends State<RecordingScreen>
 
                                     // Countdown Timer Lingkaran
                                     _buildCircularTimer(
-                                        key: const ValueKey('timer')),
+                                      key: const ValueKey('timer'),
+                                    ),
                                     const SizedBox(height: 12),
 
                                     // Badge "Merekam"
@@ -367,8 +403,9 @@ class _RecordingScreenState extends State<RecordingScreen>
                           // Robot di tengah-tengah ruang kosong
                           Expanded(
                             child: Center(
-                              child:
-                                  _buildMascot(key: const ValueKey('mascot')),
+                              child: _buildMascot(
+                                key: const ValueKey('mascot'),
+                              ),
                             ),
                           ),
 
@@ -398,10 +435,7 @@ class _RecordingScreenState extends State<RecordingScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFE2E8F0),
-                  width: 1.2,
-                ),
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
               ),
               child: const Icon(
                 Icons.close_rounded,
@@ -465,8 +499,7 @@ class _RecordingScreenState extends State<RecordingScreen>
               value: _progressFraction,
               minHeight: 4.5,
               backgroundColor: const Color(0xFFEEF2FF),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(_primaryIndigo),
+              valueColor: const AlwaysStoppedAnimation<Color>(_primaryIndigo),
             ),
           ),
           const SizedBox(height: 5),
@@ -520,8 +553,10 @@ class _RecordingScreenState extends State<RecordingScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEEEDF9),
                   borderRadius: BorderRadius.circular(16),
@@ -599,11 +634,7 @@ class _RecordingScreenState extends State<RecordingScreen>
   // ─────────────────────────────────────────────
   /// STATE 1 — Maskot (sebelum tekan Mulai)
   Widget _buildMascot({Key? key}) {
-    return AnimatedMascotWidget(
-      key: key,
-      height: 200,
-      showSpeechBubble: true,
-    );
+    return AnimatedMascotWidget(key: key, height: 200, showSpeechBubble: true);
   }
 
   // ─────────────────────────────────────────────
@@ -719,8 +750,9 @@ class _RecordingScreenState extends State<RecordingScreen>
               final distFromCenter = (i - centerIndex).abs(); // 0 to 7
 
               // Bentuk kurva amplop melandai indah
-              final envelope =
-                  math.cos((distFromCenter / centerIndex) * (math.pi / 2.2));
+              final envelope = math.cos(
+                (distFromCenter / centerIndex) * (math.pi / 2.2),
+              );
 
               double barHeight;
               Color barColor;
@@ -773,11 +805,7 @@ class _RecordingScreenState extends State<RecordingScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: const [
-        Icon(
-          Icons.schedule_rounded,
-          size: 14,
-          color: Color(0xFF94A3B8),
-        ),
+        Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF94A3B8)),
         SizedBox(width: 5),
         Text(
           'Bicara santai, minimal 10 detik',
@@ -828,9 +856,7 @@ class _RecordingScreenState extends State<RecordingScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           _ControlButton(
-            icon: _isPaused
-                ? Icons.play_arrow_rounded
-                : Icons.pause_rounded,
+            icon: _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
             label: _isPaused ? 'Lanjut' : 'Jeda',
             onTap: _isRecording
                 ? (_isPaused ? _resumeRecording : _pauseRecording)
@@ -894,13 +920,7 @@ class _CircleTimerPainter extends CustomPainter {
         ..strokeWidth = strokeW
         ..strokeCap = StrokeCap.round;
 
-      canvas.drawArc(
-        rect,
-        -math.pi / 2,
-        sweepAngle,
-        false,
-        arcPaint,
-      );
+      canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, arcPaint);
     }
   }
 
@@ -915,11 +935,7 @@ class _ControlButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
 
-  const _ControlButton({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _ControlButton({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -935,10 +951,7 @@ class _ControlButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFFE2E8F0),
-                width: 1.5,
-              ),
+              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
             ),
             child: Icon(
               icon,

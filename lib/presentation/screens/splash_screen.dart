@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../services/auth_service.dart';
 import '../utils/transition_utils.dart';
+import 'auth/login_screen.dart';
 import 'home_screen.dart';
-import 'onboarding/onboarding_screen.dart';
 
 // TODO(auth): Set to false untuk mengembalikan alur login/onboarding normal.
 /// Bypass login sementara: langsung masuk ke HomeScreen setelah splash.
@@ -90,9 +90,15 @@ class _SplashScreenState extends State<SplashScreen>
         // Cek apakah user sudah memiliki sesi login aktif
         final currentUser = AuthService().currentUser;
         if (kBypassAuthTemporarily || currentUser != null) {
-          if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
+          if (mounted) {
+            context.pushDissolveReplacement((_) => const HomeScreen());
+          }
         } else {
-          if (mounted) context.pushDissolveReplacement((_) => const OnboardingScreen());
+          // Belum login: selalu arahkan ke LoginScreen. Onboarding hanya
+          // tampil setelah login bagi pengguna baru registrasi.
+          if (mounted) {
+            context.pushDissolveReplacement((_) => const LoginScreen());
+          }
         }
       }
     });

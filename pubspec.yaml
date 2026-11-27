@@ -74,6 +74,9 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    # Data studi kasus (id, situasi, tugas, kata kunci penilaian).
+    # Dipakai mode AI langsung di dalam aplikasi (GroqDirectService).
+    - assets/data/studi_kasus.json
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

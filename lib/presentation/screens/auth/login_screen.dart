@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 
@@ -60,7 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
+      // Pengguna baru registrasi diarahkan ke onboarding; pengguna lama langsung Home
+      final nextScreen = _authService.isRecentlyRegisteredUser()
+          ? const OnboardingScreen()
+          : const HomeScreen();
+      if (mounted) context.pushDissolveReplacement((_) => nextScreen);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -91,9 +96,22 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Otomatis berpindah ke HomeScreen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        // Pengguna baru registrasi diarahkan ke onboarding; pengguna lama langsung Home
+        final nextScreen =
+            _authService.isRecentlyRegisteredUser(user: credential.user)
+            ? const OnboardingScreen()
+            : const HomeScreen();
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => nextScreen));
+      } else if (credential == null && mounted) {
+        // User menutup halaman OAuth sebelum selesai (flow browser di Android/iOS)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login Google dibatalkan.'),
+            backgroundColor: Color(0xFF64748B),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {

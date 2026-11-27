@@ -7,6 +7,7 @@ import 'consent_screen.dart';
 import 'age_failed_screen.dart';
 import 'login_screen.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -104,8 +105,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        // Akun baru hasil registrasi: arahkan ke onboarding dulu.
+        // Bila ternyata akun lama (misal klik Google di halaman daftar),
+        // langsung masuk Home tanpa onboarding.
+        final nextScreen =
+            _authService.isRecentlyRegisteredUser(user: credential.user)
+            ? const OnboardingScreen()
+            : const HomeScreen();
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => nextScreen));
+      } else if (credential == null && mounted) {
+        // User menutup halaman OAuth sebelum selesai (flow browser di Android/iOS)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pendaftaran dengan Google dibatalkan.'),
+            backgroundColor: Color(0xFF64748B),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
@@ -226,7 +243,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             size: 20,
                           ),
                           onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                     ),
@@ -304,7 +322,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF334155),
                           side: const BorderSide(
-                              color: Color(0xFFE2E8F0), width: 1.5),
+                            color: Color(0xFFE2E8F0),
+                            width: 1.5,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

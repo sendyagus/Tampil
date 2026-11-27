@@ -216,12 +216,18 @@ class TestScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const Text(
-                '3 tersisa',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F172A),
+              // Sisa kuota feedback AI nyata (3/hari, reset 01.00 WIB)
+              FutureBuilder<FeedbackQuotaStatus>(
+                future: AuthService().feedbackQuotaStatus(),
+                builder: (context, snap) => Text(
+                  snap.data == null
+                      ? '${AuthService.maxFeedbackPerDay} tersisa'
+                      : '${snap.data!.remaining} tersisa',
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
@@ -232,11 +238,7 @@ class TestScreen extends StatelessWidget {
           // Baris 3: Reset info
           Row(
             children: const [
-              Icon(
-                Icons.schedule_rounded,
-                size: 14,
-                color: Color(0xFF94A3B8),
-              ),
+              Icon(Icons.schedule_rounded, size: 14, color: Color(0xFF94A3B8)),
               SizedBox(width: 6),
               Text(
                 'Reset pukul 01.00 WIB',
@@ -527,9 +529,7 @@ class TestScreen extends StatelessWidget {
           : null,
       builder: (context, snapshot) {
         final session = snapshot.data;
-        final score = session != null
-            ? session.communicationIndex.toInt()
-            : 70;
+        final score = session != null ? session.communicationIndex.toInt() : 70;
         final status = session != null ? session.kategoriSkor : 'Baik';
 
         return Container(

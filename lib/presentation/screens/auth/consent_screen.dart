@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../../utils/transition_utils.dart';
 import '../home_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class ConsentScreen extends StatefulWidget {
   final String? email;
@@ -53,15 +54,18 @@ class _ConsentScreenState extends State<ConsentScreen> {
           ),
         );
 
+        // Pengguna baru registrasi: tampilkan onboarding sebelum masuk Home
         Navigator.of(context).pushAndRemoveUntil(
-          DissolvePageRoute(builder: (_) => const HomeScreen()),
+          DissolvePageRoute(builder: (_) => const OnboardingScreen()),
           (route) => false,
         );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal mendaftar: ${e.toString().replaceAll("Exception:", "").trim()}'),
+            content: Text(
+              'Gagal mendaftar: ${e.toString().replaceAll("Exception:", "").trim()}',
+            ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
           ),
@@ -155,9 +159,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                       'Kamu bisa melihat, mengekspor, dan menghapus datamu',
                     ),
                     const SizedBox(height: 18),
-                    _consentItem(
-                      'Kamu bisa mencabut persetujuan kapan saja',
-                    ),
+                    _consentItem('Kamu bisa mencabut persetujuan kapan saja'),
                     const SizedBox(height: 28),
 
                     // Link Terms
@@ -213,8 +215,11 @@ class _ConsentScreenState extends State<ConsentScreen> {
                             ),
                           ),
                           child: _agreed
-                              ? const Icon(Icons.check_rounded,
-                                  color: Colors.white, size: 16)
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                )
                               : null,
                         ),
                         const SizedBox(width: 12),
@@ -240,10 +245,12 @@ class _ConsentScreenState extends State<ConsentScreen> {
                     child: ElevatedButton(
                       onPressed: (_agreed && !_isLoading) ? _lanjut : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _agreed ? _primaryBlue : const Color(0xFFE2E8F0),
-                        foregroundColor:
-                            _agreed ? Colors.white : const Color(0xFF94A3B8),
+                        backgroundColor: _agreed
+                            ? _primaryBlue
+                            : const Color(0xFFE2E8F0),
+                        foregroundColor: _agreed
+                            ? Colors.white
+                            : const Color(0xFF94A3B8),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -287,11 +294,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
             color: _lightBlueBg,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.check_rounded,
-            color: _primaryBlue,
-            size: 16,
-          ),
+          child: const Icon(Icons.check_rounded, color: _primaryBlue, size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(

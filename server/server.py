@@ -25,6 +25,16 @@ from pydantic import BaseModel
 # KONFIGURASI
 # ============================================================
 
+DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Muat .env agar GROQ_API_KEY tersedia walau server dijalankan
+# langsung tanpa run_server.bat (misal: python -m uvicorn server:app).
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(DIR, ".env"))
+except ImportError:
+    pass
+
 SAMPLE_RATE = 16000
 BATAS_BYTE = 24 * 1024 * 1024
 
@@ -647,39 +657,59 @@ def transkrip(file: UploadFile = File(...)):
 
         mulai_groq = time.perf_counter()
 
-        try:
-            hasil = groq_client.audio.transcriptions.create(
-                file=groq_file_payload,
-                model=GROQ_STT_MODEL,
-                language="id",
-                prompt=PROMPT,
-                response_format="verbose_json",
-                timestamp_granularities=["word", "segment"],
-                temperature=0.0,
-            )
+        # Rantai fallback: model whisper di Groq tidak selalu mendukung
+        # timestamp granularitas kata. Jika satu konfigurasi ditolak API,
+        # coba konfigurasi berikutnya alih-alih langsung gagal (502).
+        stt_attempts = [
+            {
+                "response_format": "verbose_json",
+                "timestamp_granularities": ["word", "segment"],
+            },
+            {
+                "response_format": "verbose_json",
+                "timestamp_granularities": ["segment"],
+            },
+            {"response_format": "verbose_json"},
+            {"response_format": "json"},
+        ]
 
-        except Exception as e:
+        hasil = None
+        error_groq_terakhir = None
+
+        for cfg in stt_attempts:
+            try:
+                hasil = groq_client.audio.transcriptions.create(
+                    file=groq_file_payload,
+                    model=GROQ_STT_MODEL,
+                    language="id",
+                    prompt=PROMPT,
+                    temperature=0.0,
+                    **cfg,
+                )
+                break
+            except Exception as e:
+                error_groq_terakhir = e
+                print(
+                    "Konfigurasi STT gagal, mencoba alternatif:",
+                    cfg, "|", type(e).__name__, repr(e)[:300],
+                )
+
+        if hasil is None:
+            e = error_groq_terakhir
             print("\n========== GROQ ERROR ==========")
-            print("Jenis error:", type(e).__name__)
+            print("Jenis error:", type(e).__name__ if e else "?")
             print("Pesan error:", repr(e))
-
-            if hasattr(e, "status_code"):
-                print("HTTP status Groq:", e.status_code)
-
-            if hasattr(e, "response"):
-                print("Respons Groq:", e.response)
-
             print("================================\n")
 
             try:
                 with open(os.path.join(DIR, "debug_transkrip.log"), "a", encoding="utf-8") as f_log:
-                    f_log.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] GROQ ERROR: {type(e).__name__}: {repr(e)}\n")
+                    f_log.write(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] GROQ ERROR: {type(e).__name__ if e else '?'}: {repr(e)}\n")
             except Exception:
                 pass
 
             raise HTTPException(
                 status_code=502,
-                detail=f"Groq gagal melakukan transkripsi: {type(e).__name__}",
+                detail=f"Groq gagal melakukan transkripsi: {type(e).__name__ if e else 'Unknown'}",
             )
 
         print(
@@ -792,6 +822,9 @@ Arti skor:
 - skor_kelengkapan: seberapa banyak poin penting yang disampaikan.
 - skor_argumen: kualitas alasan, penjelasan, atau solusi.
 - skor_struktur: kejelasan urutan dan alur jawaban.
+- skor_kejelasan_konteks: seberapa jelas pendengar dapat
+  memahami situasi/masalah yang sedang dibicarakan dari
+  penjelasan pembicara (latar masalah disebut, tidak menggantung).
 - skor_isi: penilaian keseluruhan kualitas isi jawaban.
 
 Bentuk JSON yang WAJIB dikembalikan:
@@ -801,6 +834,7 @@ Bentuk JSON yang WAJIB dikembalikan:
   "skor_kelengkapan": 0,
   "skor_argumen": 0,
   "skor_struktur": 0,
+  "skor_kejelasan_konteks": 0,
   "kesesuaian_naskah": null,
   "ringkasan": "Ringkasan singkat hasil penilaian.",
   "kekuatan": [],
@@ -1127,6 +1161,19 @@ def nilai_isi(b: BodyIsi):
             hasil.get("skor_struktur", -1)
         )
 
+        # Kejelasan konteks: toleran — jika model lupa mengisi
+        # field baru ini, fallback ke skor_isi agar penilaian
+        # tidak gagal seluruhnya.
+        try:
+            skor_kejelasan = float(
+                hasil.get("skor_kejelasan_konteks", skor)
+            )
+        except (TypeError, ValueError):
+            skor_kejelasan = skor
+        if not math.isfinite(skor_kejelasan):
+            skor_kejelasan = skor
+        skor_kejelasan = max(0.0, min(100.0, skor_kejelasan))
+
         semua_skor = {
             "skor_isi": skor,
             "skor_relevansi": skor_relevansi,
@@ -1226,6 +1273,11 @@ def nilai_isi(b: BodyIsi):
             "tersedia": True,
             "model": GROQ_MODEL,
             "skor_isi": round(skor),
+            "skor_relevansi": round(skor_relevansi),
+            "skor_kelengkapan": round(skor_kelengkapan),
+            "skor_argumen": round(skor_argumen),
+            "skor_struktur": round(skor_struktur),
+            "skor_kejelasan_konteks": round(skor_kejelasan),
             "kesesuaian_naskah": kesesuaian,
             "ringkasan": ringkasan,
             "kekuatan": kekuatan,

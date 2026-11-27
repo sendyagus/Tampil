@@ -8,6 +8,16 @@ int _readInt(dynamic value) {
   return int.tryParse(value?.toString() ?? '') ?? 0;
 }
 
+/// Status kuota feedback AI harian user (dibaca dari dokumen Firestore users).
+class FeedbackQuotaStatus {
+  final int max;
+  final int used;
+  const FeedbackQuotaStatus({required this.max, required this.used});
+
+  int get remaining => (max - used).clamp(0, max);
+  bool get habis => remaining <= 0;
+}
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -18,6 +28,18 @@ class AuthService {
 
   // Stream perubahan status login (login / logout)
   Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  /// Deteksi pengguna baru registrasi: akun Firebase Auth dibuat kurang dari
+  /// [maxAge] yang lalu. Dipakai untuk menentukan perlu tidaknya onboarding
+  /// ditampilkan setelah login (pengguna lama tidak melewati onboarding).
+  bool isRecentlyRegisteredUser({
+    User? user,
+    Duration maxAge = const Duration(minutes: 5),
+  }) {
+    final createdAt = (user ?? currentUser)?.metadata.creationTime;
+    if (createdAt == null) return false;
+    return DateTime.now().difference(createdAt.toLocal()) < maxAge;
+  }
 
   // Stream data profil user dari Firestore secara realtime (responsif terhadap authState)
   Stream<DocumentSnapshot<Map<String, dynamic>>> get userProfileStream {
@@ -228,17 +250,23 @@ class AuthService {
     return credential;
   }
 
-  // Sign In dengan Google (Pop-up Akun Google Resmi Firebase)
+  // Sign In dengan Google (berjalan di semua platform)
+  // - Web  : popup akun Google resmi Firebase (signInWithPopup)
+  // - Android/iOS/desktop Apple : alur OAuth Firebase lewat browser eksternal
+  //   (signInWithProvider, memakai Chrome Custom Tab / SFSafariViewController)
   Future<UserCredential?> signInWithGoogle() async {
     try {
       final GoogleAuthProvider googleProvider = GoogleAuthProvider();
       googleProvider.addScope('email');
       googleProvider.addScope('profile');
 
-      // Membuka pop-up login Google bawaan Firebase
-      final UserCredential credential = await _auth.signInWithPopup(
-        googleProvider,
-      );
+      final UserCredential credential;
+      if (kIsWeb) {
+        // Membuka pop-up akun Google bawaan Firebase (hanya tersedia di web)
+        credential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        credential = await _auth.signInWithProvider(googleProvider);
+      }
 
       if (credential.user != null) {
         // Otomatis sinkronkan profil user ke Firestore
@@ -249,6 +277,15 @@ class AuthService {
       }
 
       return credential;
+    } on FirebaseAuthException catch (e) {
+      // User menutup halaman OAuth sebelum selesai: jangan tampilkan error keras
+      if (e.code == 'cancelled-provider-auth' ||
+          e.code == 'popup-closed-by-user') {
+        debugPrint('Google Sign-In dibatalkan user: ${e.code}');
+        return null;
+      }
+      debugPrint('Error Google Sign-In: $e');
+      rethrow;
     } catch (e) {
       debugPrint('Error Google Sign-In: $e');
       rethrow;
@@ -276,6 +313,80 @@ class AuthService {
       return email.split('@').first;
     }
     return 'User';
+  }
+
+  // ============================ KUOTA FEEDBACK AI ============================
+
+  static const int maxFeedbackPerDay = 3;
+  // Batas hari kuota: reset setiap jam 01.00 WIB (bukan tengah malam biasa).
+  static const int _resetHourWib = 1;
+
+  /// Label "hari kuota" berbasis WIB: sebelum jam 01.00 masih dihitung hari kemarin.
+  String get _quotaDayLabel {
+    final wib = DateTime.now().toUtc().add(const Duration(hours: 7));
+    final day = wib.hour < _resetHourWib
+        ? wib.subtract(const Duration(days: 1))
+        : wib;
+    return '${day.year}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Sisa kuota feedback AI hari ini. Otomatis di-reset saat melewati jam
+  /// 01.00 WIB (ganti hari kuota) dan hasil reset ditulis balik ke Firestore.
+  Future<FeedbackQuotaStatus> feedbackQuotaStatus() async {
+    final uid = currentUser?.uid;
+    if (uid == null) {
+      return const FeedbackQuotaStatus(max: maxFeedbackPerDay, used: 0);
+    }
+    final userRef = _firestore.collection('users').doc(uid);
+    final snapshot = await userRef.get();
+    final data = snapshot.data() ?? <String, dynamic>{};
+
+    final max = _readInt(data['kuota_feedback']) > 0
+        ? _readInt(data['kuota_feedback'])
+        : maxFeedbackPerDay;
+    final isNewDay = data['quota_date']?.toString() != _quotaDayLabel;
+    final used = isNewDay ? 0 : _readInt(data['kuota_feedback_terpakai']);
+
+    // Persist hasil reset supaya perangkat/stream lain ikut melihat
+    if (isNewDay && snapshot.exists) {
+      try {
+        await userRef.update({
+          'kuota_feedback_terpakai': 0,
+          'quota_date': _quotaDayLabel,
+        });
+      } catch (_) {}
+    }
+    return FeedbackQuotaStatus(max: max, used: used);
+  }
+
+  /// Kurangi satu kuota feedback AI secara atomik (transaction).
+  /// Mengembalikan false bila kuota hari ini sudah habis.
+  Future<bool> consumeFeedbackQuota() async {
+    final uid = currentUser?.uid;
+    if (uid == null) return true; // belum login: jangan blokir (mode demo)
+
+    final userRef = _firestore.collection('users').doc(uid);
+    return _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+      if (!snapshot.exists) return true;
+      final data = snapshot.data() ?? <String, dynamic>{};
+
+      final max = _readInt(data['kuota_feedback']) > 0
+          ? _readInt(data['kuota_feedback'])
+          : maxFeedbackPerDay;
+      final isNewDay = data['quota_date']?.toString() != _quotaDayLabel;
+      final used = isNewDay ? 0 : _readInt(data['kuota_feedback_terpakai']);
+      if (used >= max) return false;
+
+      transaction.set(userRef, {
+        'kuota_feedback': max,
+        'kuota_feedback_terpakai': used + 1,
+        'quota_date': _quotaDayLabel,
+      }, SetOptions(merge: true));
+      return true;
+    });
   }
 
   // ============================ PROGRES LESSON ============================

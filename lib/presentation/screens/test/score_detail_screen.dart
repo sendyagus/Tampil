@@ -28,23 +28,48 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
   List<_ScoreItem> get _scoreItems {
     final b = widget.analysisResult?.breakdown ?? const ScoreBreakdown();
     return [
-      _ScoreItem(label: 'Kelancaran jeda', weight: '30%', score: b.kelancaranJeda, isFocus: false),
-      _ScoreItem(label: 'Kebersihan ucapan', weight: '25%', score: b.kebersihanUcapan, isFocus: true),
+      _ScoreItem(
+        label: 'Kelancaran jeda',
+        weight: '30%',
+        score: b.kelancaranJeda,
+        isFocus: false,
+      ),
+      _ScoreItem(
+        label: 'Kebersihan ucapan',
+        weight: '25%',
+        score: b.kebersihanUcapan,
+        isFocus: true,
+      ),
       _ScoreItem(label: 'Tempo', weight: '15%', score: b.tempo, isFocus: false),
-      _ScoreItem(label: 'Cakupan isi', weight: '20%', score: b.cakupanIsi, isFocus: false),
-      _ScoreItem(label: 'Struktur', weight: '10%', score: b.struktur, isFocus: false),
+      _ScoreItem(
+        label: 'Cakupan isi',
+        weight: '20%',
+        score: b.cakupanIsi,
+        isFocus: false,
+      ),
+      _ScoreItem(
+        label: 'Struktur',
+        weight: '10%',
+        score: b.struktur,
+        isFocus: false,
+      ),
     ];
   }
 
   List<_KeyPoint> get _keyPoints {
     final kps = widget.analysisResult?.keyPoints;
     if (kps != null && kps.isNotEmpty) {
-      return kps.map((k) => _KeyPoint(text: k.text, done: k.isCovered)).toList();
+      return kps
+          .map((k) => _KeyPoint(text: k.text, done: k.isCovered))
+          .toList();
     }
     return const [
       _KeyPoint(text: 'Menyebutkan konteks masalah secara jelas', done: true),
       _KeyPoint(text: 'Memberikan argumen utama yang runtut', done: true),
-      _KeyPoint(text: 'Mengajukan solusi alternatif untuk rekan tim', done: true),
+      _KeyPoint(
+        text: 'Mengajukan solusi alternatif untuk rekan tim',
+        done: true,
+      ),
       _KeyPoint(text: 'Menyimpulkan kesepakatan di akhir bicara', done: false),
     ];
   }
@@ -119,10 +144,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFFE2E8F0),
-                  width: 1.2,
-                ),
+                border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
               ),
               child: const Icon(
                 Icons.arrow_back_ios_new_rounded,
@@ -167,10 +189,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFE6FFFA),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFF99F6E4),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFF99F6E4), width: 1),
           ),
           child: Text(
             widget.scoreLabel,
@@ -203,10 +222,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.03),
@@ -311,10 +327,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.03),
@@ -387,10 +400,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-            width: 1.2,
-          ),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF0F172A).withValues(alpha: 0.03),
@@ -404,11 +414,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.article_outlined,
-                  size: 20,
-                  color: _indigo,
-                ),
+                const Icon(Icons.article_outlined, size: 20, color: _indigo),
                 const SizedBox(width: 10),
                 const Text(
                   'Lihat transkrip',
@@ -444,7 +450,12 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
               const Divider(height: 1, color: Color(0xFFF1F5F9)),
               const SizedBox(height: 12),
               Text(
-                '“${widget.analysisResult?.transcript ?? "Jadi menurut saya, kita bisa mulai membagi tugas lebih spesifik agar setiap orang punya tanggung jawab yang jelas. Bagaimana kalau kita diskusikan solusinya sekarang?"}”',
+                // Tampilkan transkrip asli hasil speech-to-text.
+                // Jika tidak ada, beri pesan jujur, bukan teks demo.
+                widget.analysisResult != null &&
+                        widget.analysisResult!.transcript.trim().isNotEmpty
+                    ? '“${widget.analysisResult!.transcript.trim()}”'
+                    : 'Belum ada ucapan yang terdeteksi dari rekamanmu.',
                 style: const TextStyle(
                   fontSize: 13,
                   color: Color(0xFF475569),
@@ -516,11 +527,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
               ],
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            size: 22,
-            color: _indigo,
-          ),
+          const Icon(Icons.chevron_right_rounded, size: 22, color: _indigo),
         ],
       ),
     );
@@ -530,9 +537,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
   Widget _buildBottomButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
       child: SizedBox(
         width: double.infinity,
         height: 52,
@@ -552,10 +557,7 @@ class _ScoreDetailScreenState extends State<ScoreDetailScreen> {
             children: const [
               Text(
                 'Lanjut belajar',
-                style: TextStyle(
-                  fontSize: 15.5,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
               ),
               SizedBox(width: 8),
               Icon(Icons.arrow_forward_rounded, size: 18),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/ai_analysis_service.dart';
+import '../../../services/auth_service.dart';
 import 'ai_feedback_screen.dart';
 
 /// Screen consent pemrosesan AI pihak ketiga (Groq).
@@ -7,10 +8,7 @@ import 'ai_feedback_screen.dart';
 class AiConsentScreen extends StatefulWidget {
   final SpeechAnalysisResult? analysisResult;
 
-  const AiConsentScreen({
-    super.key,
-    this.analysisResult,
-  });
+  const AiConsentScreen({super.key, this.analysisResult});
 
   @override
   State<AiConsentScreen> createState() => _AiConsentScreenState();
@@ -18,10 +16,62 @@ class AiConsentScreen extends StatefulWidget {
 
 class _AiConsentScreenState extends State<AiConsentScreen> {
   bool _isChecked = false;
+  bool _isConsuming = false;
 
   static const Color _indigo = Color(0xFF4F46E5);
   static const Color _indigoLight = Color(0xFFEEEDF9);
   static const Color _slate = Color(0xFF64748B);
+
+  // Konsumsi satu kuota feedback AI (maks 3/hari, reset 01.00 WIB),
+  // lalu buka AiFeedbackScreen dengan sisa kuota terbaru.
+  Future<void> _lanjutKeFeedback() async {
+    if (_isConsuming) return;
+    setState(() => _isConsuming = true);
+    try {
+      final authService = AuthService();
+      final ok = await authService.consumeFeedbackQuota();
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Kuota feedback AI hari ini habis (3/3 terpakai). '
+              'Reset otomatis pukul 01.00 WIB.',
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      final quota = await authService.feedbackQuotaStatus();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => AiFeedbackScreen(
+            remainingFeedback: quota.remaining,
+            maxFeedback: quota.max,
+            strengthText:
+                widget.analysisResult?.strengthText ??
+                'Kamu langsung menyebut ide utama di awal.',
+            improvementText:
+                widget.analysisResult?.improvementText ??
+                'Kurangi filler saat berpikir.',
+            quoteSample:
+                widget.analysisResult?.quoteSample ??
+                '“eee, jadi menurutku, eee...”',
+            suggestionText:
+                widget.analysisResult?.suggestionText ??
+                '“Menurutku, idenya perlu diuji dulu karena waktunya terbatas.”',
+            nextLessonTitle:
+                widget.analysisResult?.nextLessonTitle ?? 'Belajar Lesson 2',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isConsuming = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,10 +168,7 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF0F172A).withValues(alpha: 0.04),
@@ -144,7 +191,10 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
                   fontWeight: FontWeight.w400,
                 ),
                 children: [
-                  TextSpan(text: 'Audio dan transkrip diproses oleh\npenyedia AI bernama '),
+                  TextSpan(
+                    text:
+                        'Audio dan transkrip diproses oleh\npenyedia AI bernama ',
+                  ),
                   TextSpan(
                     text: 'Groq',
                     style: TextStyle(
@@ -196,20 +246,13 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
   }
 
   // ─────────────────────────────────────────────
-  Widget _buildInfoRow({
-    required IconData icon,
-    required Widget content,
-  }) {
+  Widget _buildInfoRow({required IconData icon, required Widget content}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFF94A3B8),
-          ),
+          Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
           const SizedBox(width: 14),
           Expanded(child: content),
         ],
@@ -221,9 +264,7 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
   Widget _buildBottomSection() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
+      decoration: const BoxDecoration(color: Colors.white),
       child: Column(
         children: [
           // ── Checkbox Row ──
@@ -293,21 +334,7 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
             width: double.infinity,
             height: 54,
             child: ElevatedButton(
-              onPressed: _isChecked
-                  ? () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => AiFeedbackScreen(
-                            strengthText: widget.analysisResult?.strengthText ?? 'Kamu langsung menyebut ide utama di awal.',
-                            improvementText: widget.analysisResult?.improvementText ?? 'Kurangi filler saat berpikir.',
-                            quoteSample: widget.analysisResult?.quoteSample ?? '“eee, jadi menurutku, eee...”',
-                            suggestionText: widget.analysisResult?.suggestionText ?? '“Menurutku, idenya perlu diuji dulu karena waktunya terbatas.”',
-                            nextLessonTitle: widget.analysisResult?.nextLessonTitle ?? 'Belajar Lesson 2',
-                          ),
-                        ),
-                      );
-                    }
-                  : null,
+              onPressed: _isChecked ? _lanjutKeFeedback : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _indigo,
                 disabledBackgroundColor: const Color(0xFFCBD5E1),
@@ -320,10 +347,7 @@ class _AiConsentScreenState extends State<AiConsentScreen> {
               ),
               child: const Text(
                 'Lanjut',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ),
           ),

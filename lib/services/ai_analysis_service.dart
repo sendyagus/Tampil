@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'groq_direct_service.dart';
 
 /// Model status poin kunci studi kasus
 class KeyPointStatus {
@@ -18,7 +19,8 @@ class KeyPointStatus {
   factory KeyPointStatus.fromJson(Map<String, dynamic> json) {
     return KeyPointStatus(
       text: json['nama'] ?? json['text'] ?? '',
-      isCovered: json['tercapai'] ?? json['terpenuhi'] ?? json['isCovered'] ?? false,
+      isCovered:
+          json['tercapai'] ?? json['terpenuhi'] ?? json['isCovered'] ?? false,
       matchedKeywords: List<String>.from(
         json['kata_kunci_cocok'] ?? json['kata_cocok'] ?? [],
       ),
@@ -61,6 +63,10 @@ class SpeechAnalysisResult {
   final String suggestionText;
   final String nextLessonTitle;
 
+  /// true jika hasil adalah demo simulasi (server AI offline / error),
+  /// bukan hasil analisis rekaman asli. Jangan disimpan sebagai riwayat.
+  final bool isFallback;
+
   const SpeechAnalysisResult({
     required this.transcript,
     required this.durationSeconds,
@@ -77,6 +83,7 @@ class SpeechAnalysisResult {
     required this.quoteSample,
     required this.suggestionText,
     this.nextLessonTitle = 'Belajar Lesson 2',
+    this.isFallback = false,
   });
 
   /// Data default simulasi saat server offline / demo
@@ -116,8 +123,21 @@ class SpeechAnalysisResult {
       suggestionText:
           '“Menurutku, idenya perlu diuji dulu karena waktunya terbatas.”',
       nextLessonTitle: 'Belajar Lesson 2',
+      isFallback: true,
     );
   }
+}
+
+/// Cara aplikasi mendapatkan hasil AI.
+enum AiMode {
+  /// Server FastAPI lokal di PC (port 8000) yang memanggil Groq.
+  serverLokal,
+
+  /// Aplikasi memanggil Groq langsung, tanpa server apa pun.
+  groqLangsung,
+
+  /// Keduanya tidak tersedia, hasil yang muncul hanya demo.
+  tidakTersedia,
 }
 
 /// Service komunikasi Flutter ke Mesin AI Eki (FastAPI + Groq)
@@ -129,15 +149,33 @@ class AiAnalysisService {
 
   String get baseUrl => _activeBaseUrl;
 
+  /// Mode AI terakhir yang dipakai, berguna untuk debug dan pesan error.
+  AiMode mode = AiMode.tidakTersedia;
+
+  /// Paksa AI langsung dari aplikasi tanpa mencari server lokal:
+  /// flutter run --dart-define=AI_MODE=direct
+  static const String _definedAiMode = String.fromEnvironment('AI_MODE');
+
+  /// URL server AI dari build argumen:
+  /// flutter run --dart-define=AI_SERVER_URL=http://192.168.1.10:8000
+  /// Wajib dipakai saat uji di HP fisik karena localhost HP bukan PC.
+  static const String _definedServerUrl = String.fromEnvironment(
+    'AI_SERVER_URL',
+  );
+
   /// Daftar kandidat URL server berdasarkan platform
   List<String> get candidateUrls {
+    final override = _definedServerUrl.isNotEmpty
+        ? [_definedServerUrl]
+        : <String>[];
     if (kIsWeb) {
       // Di Web (browser), coba 127.0.0.1:8000 (IPv4 langsung) baru localhost:8000
-      return ['http://127.0.0.1:8000', 'http://localhost:8000'];
+      return [...override, 'http://127.0.0.1:8000', 'http://localhost:8000'];
     }
     try {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
         return [
+          ...override,
           'http://10.0.2.2:8000', // Android Emulator ke host PC
           'http://127.0.0.1:8000',
           'http://localhost:8000',
@@ -145,7 +183,7 @@ class AiAnalysisService {
       }
     } catch (_) {}
     // Desktop Windows / iOS / macOS
-    return ['http://127.0.0.1:8000', 'http://localhost:8000'];
+    return [...override, 'http://127.0.0.1:8000', 'http://localhost:8000'];
   }
 
   /// Cek apakah server Python Eki aktif di salah satu kandidat host
@@ -153,10 +191,14 @@ class AiAnalysisService {
     for (final url in candidateUrls) {
       try {
         final uri = Uri.parse('$url/');
-        final res = await http.get(uri).timeout(const Duration(milliseconds: 2500));
+        final res = await http
+            .get(uri)
+            .timeout(const Duration(milliseconds: 2500));
         if (res.statusCode == 200) {
           _activeBaseUrl = url;
-          debugPrint('[AiAnalysisService] Terhubung ke Server AI aktif di $_activeBaseUrl');
+          debugPrint(
+            '[AiAnalysisService] Terhubung ke Server AI aktif di $_activeBaseUrl',
+          );
           return true;
         }
       } catch (e) {
@@ -166,6 +208,39 @@ class AiAnalysisService {
     return false;
   }
 
+  /// Menentukan dari mana AI dipanggil. Server lokal tetap diprioritaskan
+  /// supaya alur lama tidak rusak, lalu jatuh ke Groq langsung (tanpa server),
+  /// dan terakhir mode demo bila koneksi dan kunci sama sekali tidak ada.
+  Future<AiMode> pilihMode() async {
+    if (_definedAiMode == 'direct') {
+      final siap = await GroqDirectService.instance.siapkan();
+      mode = siap ? AiMode.groqLangsung : AiMode.tidakTersedia;
+      if (!siap) {
+        debugPrint(
+          '[AiAnalysisService] AI_MODE=direct tetapi GROQ_API_KEY kosong.',
+        );
+      }
+      return mode;
+    }
+
+    if (await isServerOnline()) {
+      mode = AiMode.serverLokal;
+      return mode;
+    }
+
+    if (await GroqDirectService.instance.siapkan()) {
+      debugPrint(
+        '[AiAnalysisService] Server AI offline, Groq dipanggil langsung '
+        'dari aplikasi.',
+      );
+      mode = AiMode.groqLangsung;
+      return mode;
+    }
+
+    mode = AiMode.tidakTersedia;
+    return mode;
+  }
+
   /// Mengirim rekaman audio ke server Eki dan mengolah hasilnya
   Future<SpeechAnalysisResult> analyzeRecording({
     String? audioPath,
@@ -173,24 +248,30 @@ class AiAnalysisService {
     String caseId = 'proyek_terlambat',
   }) async {
     try {
-      final online = await isServerOnline();
-      if (!online) {
-        debugPrint('[AiAnalysisService] Server AI offline, menggunakan hasil demo.');
-        return SpeechAnalysisResult.demoDefault();
-      }
-
       // Ambil audio bytes dari blob URL (Web) atau File (Native)
       List<int>? bytes = audioBytes;
-      if ((bytes == null || bytes.isEmpty) && audioPath != null && audioPath.isNotEmpty) {
-        if (kIsWeb || audioPath.startsWith('blob:') || audioPath.startsWith('http')) {
+      if ((bytes == null || bytes.isEmpty) &&
+          audioPath != null &&
+          audioPath.isNotEmpty) {
+        if (kIsWeb ||
+            audioPath.startsWith('blob:') ||
+            audioPath.startsWith('http')) {
           try {
-            debugPrint('[AiAnalysisService] Mengambil audio bytes dari Web blob URL: $audioPath');
-            final blobRes = await http.get(Uri.parse(audioPath)).timeout(const Duration(seconds: 30));
+            debugPrint(
+              '[AiAnalysisService] Mengambil audio bytes dari Web blob URL: $audioPath',
+            );
+            final blobRes = await http
+                .get(Uri.parse(audioPath))
+                .timeout(const Duration(seconds: 30));
             if (blobRes.statusCode == 200) {
               bytes = blobRes.bodyBytes;
-              debugPrint('[AiAnalysisService] Berhasil mengambil ${bytes.length} bytes audio');
+              debugPrint(
+                '[AiAnalysisService] Berhasil mengambil ${bytes.length} bytes audio',
+              );
             } else {
-              debugPrint('[AiAnalysisService] Gagal fetch blob: status ${blobRes.statusCode}');
+              debugPrint(
+                '[AiAnalysisService] Gagal fetch blob: status ${blobRes.statusCode}',
+              );
             }
           } catch (e) {
             debugPrint('[AiAnalysisService] Error mengambil blob audio: $e');
@@ -200,7 +281,9 @@ class AiAnalysisService {
             final f = io.File(audioPath);
             if (f.existsSync()) {
               bytes = await f.readAsBytes();
-              debugPrint('[AiAnalysisService] Berhasil membaca file lokal: ${bytes.length} bytes');
+              debugPrint(
+                '[AiAnalysisService] Berhasil membaca file lokal: ${bytes.length} bytes',
+              );
             }
           } catch (e) {
             debugPrint('[AiAnalysisService] Error membaca file lokal: $e');
@@ -208,17 +291,34 @@ class AiAnalysisService {
         }
       }
 
-      // 1. Transkripsi suara melalui POST /transkrip
-      final transcriptData = await _uploadAudioToTranskrip(bytes);
+      final dipilih = await pilihMode();
+      if (dipilih == AiMode.tidakTersedia) {
+        debugPrint(
+          '[AiAnalysisService] Server AI offline dan Groq langsung tidak '
+          'terpakai, menggunakan hasil demo.',
+        );
+        return SpeechAnalysisResult.demoDefault();
+      }
+
+      // 1. Transkripsi suara: server lokal /transkrip atau Groq langsung
+      final transcriptData = dipilih == AiMode.groqLangsung
+          ? await GroqDirectService.instance.transkrip(bytes)
+          : await _uploadAudioToTranskrip(bytes);
       final text = (transcriptData['teks'] as String?)?.trim() ?? '';
       final durasi = (transcriptData['durasi'] as num?)?.toDouble() ?? 30.0;
-      debugPrint('[AiAnalysisService] Hasil transkripsi dari server: "$text" (durasi: $durasi detik)');
+      debugPrint(
+        '[AiAnalysisService] Hasil transkripsi dari server: "$text" (durasi: $durasi detik)',
+      );
 
-      // 2. Evaluasi Cakupan Studi Kasus melalui POST /nilai_cakupan
-      final cakupanData = await _evaluasiCakupan(text, caseId);
+      // 2. Evaluasi Cakupan Studi Kasus (kata kunci, tanpa panggilan jaringan)
+      final cakupanData = dipilih == AiMode.groqLangsung
+          ? GroqDirectService.instance.cakupan(text, caseId)
+          : await _evaluasiCakupan(text, caseId);
 
-      // 3. Evaluasi Kualitas Isi & Feedback AI melalui POST /nilai_isi
-      final feedbackData = await _evaluasiIsi(text, caseId);
+      // 3. Evaluasi Kualitas Isi & Feedback AI
+      final feedbackData = dipilih == AiMode.groqLangsung
+          ? await GroqDirectService.instance.nilaiIsi(text, caseId)
+          : await _evaluasiIsi(text, caseId);
 
       // 4. Hitung Skor Keseluruhan & Communication Index
       return _buildResult(
@@ -243,11 +343,14 @@ class AiAnalysisService {
         return {'teks': '', 'durasi': 0.0};
       }
 
-      debugPrint('[AiAnalysisService] Upload audio (${bytes.length} bytes) ke $baseUrl/transkrip');
+      debugPrint(
+        '[AiAnalysisService] Upload audio (${bytes.length} bytes) ke $baseUrl/transkrip',
+      );
 
       final uri = Uri.parse('$baseUrl/transkrip');
       final request = http.MultipartRequest('POST', uri);
-      final isWav = bytes.length >= 4 &&
+      final isWav =
+          bytes.length >= 4 &&
           bytes[0] == 0x52 &&
           bytes[1] == 0x49 &&
           bytes[2] == 0x46 &&
@@ -255,14 +358,12 @@ class AiAnalysisService {
       final ext = isWav ? 'wav' : 'webm';
 
       request.files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          bytes,
-          filename: 'rekaman.$ext',
-        ),
+        http.MultipartFile.fromBytes('file', bytes, filename: 'rekaman.$ext'),
       );
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 45));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 45),
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
@@ -270,7 +371,9 @@ class AiAnalysisService {
         debugPrint('[AiAnalysisService] Server transkrip respons: $decoded');
         return decoded;
       }
-      debugPrint('[AiAnalysisService] Upload transkrip HTTP ${response.statusCode}: ${response.body}');
+      debugPrint(
+        '[AiAnalysisService] Upload transkrip HTTP ${response.statusCode}: ${response.body}',
+      );
       return {'teks': '', 'durasi': 0.0};
     } catch (e) {
       debugPrint('[AiAnalysisService] Error upload transkrip: $e');
@@ -278,21 +381,28 @@ class AiAnalysisService {
     }
   }
 
-  Future<Map<String, dynamic>> _evaluasiCakupan(String text, String caseId) async {
+  Future<Map<String, dynamic>> _evaluasiCakupan(
+    String text,
+    String caseId,
+  ) async {
     try {
       final uri = Uri.parse('$baseUrl/nilai_cakupan');
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'teks': text, 'kasus_id': caseId}),
-      ).timeout(const Duration(seconds: 20));
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'teks': text, 'kasus_id': caseId}),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body) as Map<String, dynamic>;
         debugPrint('[AiAnalysisService] Server cakupan respons: $decoded');
         return decoded;
       }
-      debugPrint('[AiAnalysisService] Evaluasi cakupan HTTP ${res.statusCode}: ${res.body}');
+      debugPrint(
+        '[AiAnalysisService] Evaluasi cakupan HTTP ${res.statusCode}: ${res.body}',
+      );
       return {};
     } catch (e) {
       debugPrint('[AiAnalysisService] Error evaluasi cakupan: $e');
@@ -303,18 +413,27 @@ class AiAnalysisService {
   Future<Map<String, dynamic>> _evaluasiIsi(String text, String caseId) async {
     try {
       final uri = Uri.parse('$baseUrl/nilai_isi');
-      final res = await http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'teks': text,'kasus_id': caseId, 'naskah': '', 'topik': ''}),
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'teks': text,
+              'kasus_id': caseId,
+              'naskah': '',
+              'topik': '',
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (res.statusCode == 200) {
         final decoded = jsonDecode(res.body) as Map<String, dynamic>;
         debugPrint('[AiAnalysisService] Server isi respons: $decoded');
         return decoded;
       }
-      debugPrint('[AiAnalysisService] Evaluasi isi HTTP ${res.statusCode}: ${res.body}');
+      debugPrint(
+        '[AiAnalysisService] Evaluasi isi HTTP ${res.statusCode}: ${res.body}',
+      );
       return {};
     } catch (e) {
       debugPrint('[AiAnalysisService] Error evaluasi isi: $e');
@@ -333,7 +452,11 @@ class AiAnalysisService {
     final kataList = transcriptData['kata'] as List<dynamic>? ?? [];
     final totalWords = kataList.isNotEmpty
         ? kataList.length
-        : transcript.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+        : transcript
+              .trim()
+              .split(RegExp(r'\s+'))
+              .where((w) => w.isNotEmpty)
+              .length;
     final safeDuration = duration > 1.0 ? duration : 30.0;
     final wpm = ((totalWords / safeDuration) * 60).round();
 
@@ -347,7 +470,8 @@ class AiAnalysisService {
     final fillersPerMin = ((fillerCount / safeDuration) * 60).round();
 
     // 3. Poin kunci (studi kasus)
-    final poinListRaw = cakupanData['rincian_poin'] as List<dynamic>? ??
+    final poinListRaw =
+        cakupanData['rincian_poin'] as List<dynamic>? ??
         cakupanData['rincian'] as List<dynamic>? ??
         [];
     final List<KeyPointStatus> keyPoints = [];
@@ -364,23 +488,41 @@ class AiAnalysisService {
     // Jika poin kunci belum terdeteksi dari kata kunci, buat poin dinamis berdasarkan panjang ucapan
     if (keyPoints.isEmpty) {
       keyPoints.addAll([
-        KeyPointStatus(text: 'Menyebutkan konteks masalah secara jelas', isCovered: totalWords >= 3),
-        KeyPointStatus(text: 'Memberikan argumen utama yang runtut', isCovered: totalWords >= 10),
-        KeyPointStatus(text: 'Mengajukan solusi alternatif untuk rekan tim', isCovered: totalWords >= 20),
-        KeyPointStatus(text: 'Menyimpulkan kesepakatan di akhir bicara', isCovered: totalWords >= 35),
+        KeyPointStatus(
+          text: 'Menyebutkan konteks masalah secara jelas',
+          isCovered: totalWords >= 3,
+        ),
+        KeyPointStatus(
+          text: 'Memberikan argumen utama yang runtut',
+          isCovered: totalWords >= 10,
+        ),
+        KeyPointStatus(
+          text: 'Mengajukan solusi alternatif untuk rekan tim',
+          isCovered: totalWords >= 20,
+        ),
+        KeyPointStatus(
+          text: 'Menyimpulkan kesepakatan di akhir bicara',
+          isCovered: totalWords >= 35,
+        ),
       ]);
       coveredCount = keyPoints.where((k) => k.isCovered).length;
     }
 
     final keyPointsRatio = '$coveredCount/${keyPoints.length}';
 
-    // 4. Hitung 5 Metrik Bicara Dinamis Menyesuaikan Hasil Tes & Suara Asli
+    // 4. Hitung 5 Metrik Bicara — masing-masing diukur dari data nyata
+    // sesuai bobot rubrik yang ditentukan UI Detail Score.
+
     // A. Kebersihan ucapan (bobot 25%): Semakin sedikit filler words, semakin tinggi nilainya
-    final int skorKebersihan = (96 - (fillersPerMin * 6)).clamp(40, 98);
+    final int skorKebersihan = totalWords == 0
+        ? 0
+        : (96 - (fillersPerMin * 6)).clamp(0, 98);
 
     // B. Tempo (bobot 15%): Ideal percakapan 120-155 WPM
     final int skorTempo;
-    if (wpm >= 115 && wpm <= 165) {
+    if (totalWords == 0) {
+      skorTempo = 0;
+    } else if (wpm >= 115 && wpm <= 165) {
       skorTempo = (94 - ((wpm - 135).abs() * 0.5)).round().clamp(80, 96);
     } else if (wpm < 115) {
       skorTempo = (55 + (wpm * 0.3)).round().clamp(40, 85);
@@ -388,141 +530,209 @@ class AiAnalysisService {
       skorTempo = (94 - ((wpm - 165) * 0.6)).round().clamp(45, 88);
     }
 
-    // C. Cakupan isi (bobot 20%): Berdasarkan kesesuaian poin kunci kasus
-    final int skorCakupan = cakupanData['skor_cakupan'] is num
+    // C. Cakupan isi (bobot 20%): pencocokan kata kunci studi kasus
+    // DIGABUNG dengan kesesuaian tema dari AI (skor_relevansi),
+    // sehingga jawaban yang out-of-topik otomatis menghambat skor.
+    final int skorCakupanKataKunci = cakupanData['skor_cakupan'] is num
         ? (cakupanData['skor_cakupan'] as num).toInt()
         : keyPoints.isNotEmpty
-            ? ((coveredCount / keyPoints.length) * 100).round()
-            : 75;
+        ? ((coveredCount / keyPoints.length) * 100).round()
+        : 0;
+    final int? skorRelevansiTema = feedbackData['skor_relevansi'] is num
+        ? (feedbackData['skor_relevansi'] as num).toInt().clamp(0, 100)
+        : null;
+    final int skorCakupan = skorRelevansiTema == null
+        ? skorCakupanKataKunci
+        : ((skorCakupanKataKunci * 0.5) + (skorRelevansiTema * 0.5))
+              .round()
+              .clamp(0, 100);
 
-    // D. Struktur (bobot 10%): Struktur argumentasi dan kejelasan
-    final int skorStruktur = feedbackData['skor_isi'] is num
-        ? ((feedbackData['skor_isi'] as num).toInt() * 0.9 + (coveredCount >= 2 ? 10 : 0)).round().clamp(40, 95)
-        : (coveredCount >= 3 ? 85 : coveredCount >= 2 ? 72 : 55);
-
-// Tidak menggunakan nilai minimum paksa.
-// Jika pengguna tidak berbicara, skornya dapat menjadi 0.
-final int skorKelancaran = (
-  (skorKebersihan * 0.4) +
-  (skorTempo * 0.4) +
-  (totalWords > 15
-      ? 20
-      : totalWords > 5
-          ? 10
-          : 0)
-).round().clamp(0, 100);
-
-
-// G. TOTAL COMMUNICATION INDEX
-final int communicationIndex;
-
-if (totalWords == 0) {
-  // Tidak ada ucapan = tidak ada nilai komunikasi.
-  communicationIndex = 0;
-} else {
-  communicationIndex = (
-    (skorKelancaran * 0.30) +
-    (skorKebersihan * 0.25) +
-    (skorCakupan * 0.20) +
-    (skorTempo * 0.15) +
-    (skorStruktur * 0.10)
-  ).round().clamp(0, 100);
-}
-
-
-// H. POIN YANG DIDAPAT
-// Jika tidak ada ucapan, pengguna tidak mendapat poin.
-final int pointsAdded = totalWords == 0
-    ? 0
-    : (communicationIndex / 12).round().clamp(1, 10);
-
-
-// I. FEEDBACK DARI GROQ LLM
-
-// Mengambil daftar kekuatan dari hasil AI.
-final kekuatanList =
-    feedbackData['kekuatan'] as List<dynamic>? ?? [];
-
-// Jika AI tidak menemukan kekuatan, jangan membuat
-// feedback positif yang tidak sesuai dengan ucapan pengguna.
-final kekuatan = kekuatanList.isNotEmpty
-    ? kekuatanList.first.toString()
-    : 'Belum ada kekuatan yang dapat dinilai karena jawaban belum memiliki isi yang cukup.';
-
-// Mengambil daftar area perbaikan dari hasil AI.
-final perbaikanList =
-    feedbackData['perbaikan'] as List<dynamic>? ?? [];
-
-String improvement = fillerCount > 0
-    ? 'Kurangi filler saat berpikir.'
-    : 'Latih penyampaian jawaban agar lebih jelas.';
-
-String quote = fillerCount > 0
-    ? '“eee...”'
-    : 'Belum ada bagian ucapan yang cukup untuk dikutip.';
-
-String suggestion =
-    'Mulailah menjawab dengan menjelaskan penyebab, solusi, dan langkah berikutnya sesuai studi kasus.';
-
-if (perbaikanList.isNotEmpty && perbaikanList.first is Map) {
-  final p = perbaikanList.first as Map<String, dynamic>;
-
-  improvement = p['masalah']?.toString() ?? improvement;
-
-  if (p['bagian'] != null &&
-      p['bagian'].toString().trim().isNotEmpty) {
-    quote = '“${p['bagian']}”';
-  }
-
-  if (p['saran'] != null &&
-      p['saran'].toString().trim().isNotEmpty) {
-    suggestion = p['saran'].toString();
-  }
-}
-
-
-// J. LABEL HASIL
-
-final String label;
-
-if (totalWords == 0) {
-  label = 'Belum Ada Ucapan';
-} else if (communicationIndex >= 85) {
-  label = 'Luar Biasa';
-} else if (communicationIndex >= 70) {
-  label = 'Baik';
-} else if (communicationIndex >= 55) {
-  label = 'Cukup';
-} else {
-  label = 'Perlu Latihan';
-}
-
-// 6. Transkrip asli yang ditampilkan
-final displayTranscript = transcript.trim().isNotEmpty
-    ? transcript.trim()
-    : 'Belum ada ucapan yang terdeteksi pada rekaman suara.';
-
-  return SpeechAnalysisResult(
-    transcript: displayTranscript,
-    durationSeconds: safeDuration,
-    wordsPerMinute: wpm > 0 ? wpm : 130,
-    fillerWordsCount: fillerCount,
-    communicationIndex: communicationIndex,
-    scoreLabel: label,
-    pointsAdded: pointsAdded,
-    keyPointsRatio: keyPointsRatio,
-    keyPoints: keyPoints,
-    breakdown: ScoreBreakdown(
-      kelancaranJeda: skorKelancaran,
-      kebersihanUcapan: skorKebersihan,
-      tempo: skorTempo,
-      cakupanIsi: skorCakupan,
-      struktur: skorStruktur,
-    ),
-    strengthText: kekuatan,
-    improvementText: improvement,
-    quoteSample: quote,
-    suggestionText: suggestion,
-  );
+    // D. Struktur (bobot 10%): skor_struktur asli dari AI
+    // DIGABUNG dengan kejelasan konteks (skor_kejelasan_konteks) —
+    // seberapa jelas pendengar memahami situasi yang dibicarakan.
+    // Fallback berjenjang: skor_isi, lalu rasio poin kunci bila AI offline.
+    int skorStrukturDasar;
+    if (feedbackData['skor_struktur'] is num) {
+      skorStrukturDasar = (feedbackData['skor_struktur'] as num).toInt().clamp(
+        0,
+        100,
+      );
+    } else if (feedbackData['skor_isi'] is num) {
+      skorStrukturDasar = (feedbackData['skor_isi'] as num).toInt().clamp(
+        0,
+        100,
+      );
+    } else {
+      skorStrukturDasar = coveredCount >= 3
+          ? 85
+          : coveredCount >= 2
+          ? 72
+          : 55;
     }
+    final int? skorKejelasanKonteks =
+        feedbackData['skor_kejelasan_konteks'] is num
+        ? (feedbackData['skor_kejelasan_konteks'] as num).toInt().clamp(0, 100)
+        : null;
+    final int skorStruktur = skorKejelasanKonteks == null
+        ? skorStrukturDasar
+        : ((skorStrukturDasar * 0.5) + (skorKejelasanKonteks * 0.5))
+              .round()
+              .clamp(0, 100);
+
+    // E. Kelancaran & jeda (bobot 30%): DIUKUR NYATA dari jeda antar
+    // timestamp kata hasil speech-to-text (/transkrip mengirim kata dengan
+    // mulai/selesai). Total waktu hening di antara kata dan jumlah jeda
+    // panjang (>= 1 detik) yang mengurangi nilai.
+    double pauseTotal = 0.0;
+    int longPauses = 0;
+    double speakingSpan = 0.0;
+    {
+      final timed = kataList
+          .whereType<Map>()
+          .where((w) => w['mulai'] is num && w['selesai'] is num)
+          .toList();
+      double? firstStart;
+      double? prevEnd;
+      for (final w in timed) {
+        final m = (w['mulai'] as num).toDouble();
+        final s = (w['selesai'] as num).toDouble();
+        firstStart ??= m;
+        if (prevEnd != null && m > prevEnd) {
+          final gap = m - prevEnd;
+          pauseTotal += gap;
+          if (gap >= 1.0) longPauses++;
+        }
+        if (prevEnd == null || s > prevEnd) prevEnd = s;
+      }
+      if (firstStart != null && prevEnd != null) {
+        speakingSpan = prevEnd - firstStart;
+      }
+    }
+
+    final int skorKelancaran;
+    if (totalWords == 0) {
+      // Tidak ada ucapan sama sekali = tidak ada kelancaran.
+      skorKelancaran = 0;
+    } else if (speakingSpan > 0.5) {
+      final pauseRatio = (pauseTotal / speakingSpan).clamp(0.0, 1.0);
+      skorKelancaran = (100 - pauseRatio * 90 - longPauses * 4).round().clamp(
+        0,
+        100,
+      );
+    } else {
+      // Timestamp kata tidak tersedia (model STT tanpa word timing):
+      // proxy kasar dari panjang Ucapan, bukan angkaAcak tetap.
+      skorKelancaran = totalWords >= 20
+          ? 75
+          : totalWords >= 8
+          ? 60
+          : 40;
+    }
+
+    // G. TOTAL COMMUNICATION INDEX
+    final int communicationIndex;
+
+    if (totalWords == 0) {
+      // Tidak ada ucapan = tidak ada nilai komunikasi.
+      communicationIndex = 0;
+    } else {
+      communicationIndex =
+          ((skorKelancaran * 0.30) +
+                  (skorKebersihan * 0.25) +
+                  (skorCakupan * 0.20) +
+                  (skorTempo * 0.15) +
+                  (skorStruktur * 0.10))
+              .round()
+              .clamp(0, 100);
+    }
+
+    // H. POIN YANG DIDAPAT
+    // Jika tidak ada ucapan, pengguna tidak mendapat poin.
+    final int pointsAdded = totalWords == 0
+        ? 0
+        : (communicationIndex / 12).round().clamp(1, 10);
+
+    // I. FEEDBACK DARI GROQ LLM
+
+    // Mengambil daftar kekuatan dari hasil AI.
+    final kekuatanList = feedbackData['kekuatan'] as List<dynamic>? ?? [];
+
+    // Jika AI tidak menemukan kekuatan, jangan membuat
+    // feedback positif yang tidak sesuai dengan ucapan pengguna.
+    final kekuatan = kekuatanList.isNotEmpty
+        ? kekuatanList.first.toString()
+        : 'Belum ada kekuatan yang dapat dinilai karena jawaban belum memiliki isi yang cukup.';
+
+    // Mengambil daftar area perbaikan dari hasil AI.
+    final perbaikanList = feedbackData['perbaikan'] as List<dynamic>? ?? [];
+
+    String improvement = fillerCount > 0
+        ? 'Kurangi filler saat berpikir.'
+        : 'Latih penyampaian jawaban agar lebih jelas.';
+
+    String quote = fillerCount > 0
+        ? '“eee...”'
+        : 'Belum ada bagian ucapan yang cukup untuk dikutip.';
+
+    String suggestion =
+        'Mulailah menjawab dengan menjelaskan penyebab, solusi, dan langkah berikutnya sesuai studi kasus.';
+
+    if (perbaikanList.isNotEmpty && perbaikanList.first is Map) {
+      final p = perbaikanList.first as Map<String, dynamic>;
+
+      improvement = p['masalah']?.toString() ?? improvement;
+
+      if (p['bagian'] != null && p['bagian'].toString().trim().isNotEmpty) {
+        quote = '“${p['bagian']}”';
+      }
+
+      if (p['saran'] != null && p['saran'].toString().trim().isNotEmpty) {
+        suggestion = p['saran'].toString();
+      }
+    }
+
+    // J. LABEL HASIL
+
+    final String label;
+
+    if (totalWords == 0) {
+      label = 'Belum Ada Ucapan';
+    } else if (communicationIndex >= 85) {
+      label = 'Luar Biasa';
+    } else if (communicationIndex >= 70) {
+      label = 'Baik';
+    } else if (communicationIndex >= 55) {
+      label = 'Cukup';
+    } else {
+      label = 'Perlu Latihan';
+    }
+
+    // 6. Transkrip asli yang ditampilkan
+    final displayTranscript = transcript.trim().isNotEmpty
+        ? transcript.trim()
+        : 'Belum ada ucapan yang terdeteksi pada rekaman suara.';
+
+    return SpeechAnalysisResult(
+      transcript: displayTranscript,
+      durationSeconds: safeDuration,
+      wordsPerMinute: totalWords == 0 ? 0 : wpm,
+      fillerWordsCount: fillerCount,
+      communicationIndex: communicationIndex,
+      scoreLabel: label,
+      pointsAdded: pointsAdded,
+      keyPointsRatio: keyPointsRatio,
+      keyPoints: keyPoints,
+      breakdown: ScoreBreakdown(
+        kelancaranJeda: skorKelancaran,
+        kebersihanUcapan: skorKebersihan,
+        tempo: skorTempo,
+        cakupanIsi: skorCakupan,
+        struktur: skorStruktur,
+      ),
+      strengthText: kekuatan,
+      improvementText: improvement,
+      quoteSample: quote,
+      suggestionText: suggestion,
+    );
   }
+}

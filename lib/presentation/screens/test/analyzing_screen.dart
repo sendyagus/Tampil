@@ -29,7 +29,8 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
 
   // Step state: 0 = step 1 selesai, step 2 berjalan (sesuai desain Figma)
   // Bisa bertahap maju
-  int _currentStep = 1; // 0 = step 1 aktif, 1 = step 2 aktif (seperti gambar), 2 = step 3 aktif
+  int _currentStep =
+      1; // 0 = step 1 aktif, 1 = step 2 aktif (seperti gambar), 2 = step 3 aktif
 
   Timer? _stepTimer;
 
@@ -48,7 +49,9 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
     // Step 1: Ubah suara jadi teks
     if (mounted) setState(() => _currentStep = 1);
 
-    debugPrint('[AnalyzingScreen] Memulai analisis dengan audioPath: ${widget.audioPath}');
+    debugPrint(
+      '[AnalyzingScreen] Memulai analisis dengan audioPath: ${widget.audioPath}',
+    );
 
     // Panggil mesin AI (Groq FastAPI / fallback cerdas)
     final result = await AiAnalysisService.instance.analyzeRecording(
@@ -61,6 +64,14 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
     setState(() => _currentStep = 2);
 
     await Future.delayed(const Duration(milliseconds: 600));
+
+    // Server AI offline / error: JANGAN simpan hasil demo ke Firestore
+    // dan JANGAN tampil angka palsu. Beri tahu user lalu tawarkan retry.
+    if (result.isFallback) {
+      if (!mounted) return;
+      _showServerOfflineDialog();
+      return;
+    }
 
     // Simpan hasil sesi test ke Firebase Firestore (jika user login)
     try {
@@ -78,10 +89,49 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
     if (!mounted) return;
     widget.onAnalysisComplete?.call();
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(analysisResult: result),
-      ),
+      MaterialPageRoute(builder: (_) => ResultScreen(analysisResult: result)),
     );
+  }
+
+  /// Dialog saat hasil AI gagal diperoleh, baik dari server lokal maupun
+  /// Groq langsung. Setelah ditutup, pengguna dikembalikan ke layar rekaman.
+  void _showServerOfflineDialog() {
+    final pakaiLangsung =
+        AiAnalysisService.instance.mode == AiMode.groqLangsung;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          pakaiLangsung
+              ? 'AI belum dapat dihubungi'
+              : 'Server AI tidak tersambung',
+        ),
+        content: Text(
+          pakaiLangsung
+              ? 'Rekamanmu belum dianalisis karena pemanggilan AI langsung '
+                    'dari aplikasi gagal.\n\n'
+                    'Pastikan HP terhubung internet dan GROQ_API_KEY pada '
+                    'build tidak kedaluwarsa, lalu rekam kembali jawabanmu.'
+              : 'Rekamanmu belum dianalisis karena server AI (port 8000) '
+                    'tidak dapat dijangkau dan mode AI langsung tidak aktif.'
+                    '\n\n'
+                    'Jalankan server: server\\run_server.bat, atau build '
+                    'dengan --dart-define=GROQ_API_KEY=... agar AI jalan '
+                    'tanpa server. Lalu rekam kembali jawabanmu.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    ).then((_) {
+      if (mounted) Navigator.of(context).pop(); // kembali ke rekaman
+    });
   }
 
   @override
@@ -103,11 +153,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
               const Spacer(flex: 1),
 
               // ── Maskot Robot Pikir Animasi Hidup ──
-              const Center(
-                child: AnimatedThinkingMascotWidget(
-                  height: 215,
-                ),
-              ),
+              const Center(child: AnimatedThinkingMascotWidget(height: 215)),
               const SizedBox(height: 20),
 
               // ── Judul ──
@@ -177,8 +223,8 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
                       status: _currentStep > 1
                           ? _StepStatus.completed
                           : (_currentStep == 1
-                              ? _StepStatus.active
-                              : _StepStatus.pending),
+                                ? _StepStatus.active
+                                : _StepStatus.pending),
                     ),
 
                     const Divider(
@@ -262,8 +308,8 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
                 fontWeight: status == _StepStatus.active
                     ? FontWeight.w700
                     : (status == _StepStatus.completed
-                        ? FontWeight.w600
-                        : FontWeight.w500),
+                          ? FontWeight.w600
+                          : FontWeight.w500),
                 color: status == _StepStatus.pending
                     ? const Color(0xFF94A3B8)
                     : const Color(0xFF0F172A),
@@ -288,11 +334,7 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
             shape: BoxShape.circle,
           ),
           child: const Center(
-            child: Icon(
-              Icons.check_rounded,
-              size: 16,
-              color: Colors.white,
-            ),
+            child: Icon(Icons.check_rounded, size: 16, color: Colors.white),
           ),
         );
 
@@ -328,18 +370,11 @@ class _AnalyzingScreenState extends State<AnalyzingScreen>
           height: 26,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFCBD5E1),
-              width: 1.8,
-            ),
+            border: Border.all(color: const Color(0xFFCBD5E1), width: 1.8),
           ),
         );
     }
   }
 }
 
-enum _StepStatus {
-  completed,
-  active,
-  pending,
-}
+enum _StepStatus { completed, active, pending }

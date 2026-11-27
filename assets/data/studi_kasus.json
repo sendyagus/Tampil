@@ -1,0 +1,453 @@
+[
+  {
+    "id": "daily_01",
+    "kategori": "Daily Communication",
+    "nomor": "01",
+    "judul": "Berkenalan di acara baru",
+    "situasi": "Kamu hadir di acara kampus dan belum kenal siapa pun.",
+    "tugas": "Perkenalkan dirimu dan mulai obrolan singkat.",
+    "durasi": 30,
+    "poin": [
+      {
+        "nama": "Menyapa dan perkenalan nama",
+        "kataKunci": ["halo", "hai", "nama saya", "kenalkan", "salam"]
+      },
+      {
+        "nama": "Menyebutkan jurusan atau asal",
+        "kataKunci": ["jurusan", "semester", "angkatan", "dari", "prodi"]
+      },
+      {
+        "nama": "Membuka obrolan situasi",
+        "kataKunci": ["acara ini", "ramai ya", "datang sama siapa", "kegiatan"]
+      }
+    ]
+  },
+  {
+    "id": "daily_02",
+    "kategori": "Daily Communication",
+    "nomor": "02",
+    "judul": "Menolak ajakan dengan sopan",
+    "situasi": "Temanmu mengajak nongkrong, padahal kamu harus mengerjakan tugas.",
+    "tugas": "Tolak dengan sopan dan tawarkan waktu lain.",
+    "durasi": 45,
+    "poin": [
+      {
+        "nama": "Apresiasi ajakan",
+        "kataKunci": ["terima kasih", "makasih", "pengen banget", "seru nih"]
+      },
+      {
+        "nama": "Menyampaikan penolakan dengan sopan",
+        "kataKunci": ["maaf", "belum bisa", "nggak bisa ikut", "sayang sekali"]
+      },
+      {
+        "nama": "Menjelaskan alasan tugas",
+        "kataKunci": ["tugas", "deadline", "besok dikumpul", "mengerjakan", "belajar"]
+      },
+      {
+        "nama": "Menawarkan waktu lain",
+        "kataKunci": ["lain kali", "weekend", "minggu depan", "nanti kabari"]
+      }
+    ]
+  },
+  {
+    "id": "daily_03",
+    "kategori": "Daily Communication",
+    "nomor": "03",
+    "judul": "Meminta bantuan dosen",
+    "situasi": "Kamu belum paham materi dan ingin bertanya di luar jam kuliah.",
+    "tugas": "Sampaikan kesulitanmu dan minta waktu bimbingan dengan jelas.",
+    "durasi": 60,
+    "poin": [
+      {
+        "nama": "Salam dan perkenalan formal",
+        "kataKunci": ["selamat pagi", "selamat siang", "assalamualaikum", "mohon maaf mengganggu", "bapak", "ibu"]
+      },
+      {
+        "nama": "Menyebutkan identitas",
+        "kataKunci": ["nama saya", "mahasiswa kelas", "nim"]
+      },
+      {
+        "nama": "Menjelaskan bagian materi yang belum dipahami",
+        "kataKunci": ["materi", "belum paham", "kesulitan", "topik", "kurang mengerti"]
+      },
+      {
+        "nama": "Meminta waktu diskusi atau bimbingan",
+        "kataKunci": ["bertemu", "luang", "bimbingan", "diskusi", "bertanya"]
+      }
+    ]
+  },
+  {
+    "id": "daily_04",
+    "kategori": "Daily Communication",
+    "nomor": "04",
+    "judul": "Menyampaikan keluhan layanan",
+    "situasi": "Pesananmu salah dan kamu menghubungi penjual.",
+    "tugas": "Jelaskan masalahnya dengan tenang dan sebutkan solusi yang kamu minta.",
+    "durasi": 75,
+    "poin": [
+      {
+        "nama": "Salam dan nomor pesanan",
+        "kataKunci": ["halo", "pesanan", "order", "nomor pesanan", "pembelian"]
+      },
+      {
+        "nama": "Menjelaskan masalah barang salah",
+        "kataKunci": ["salah barang", "tidak sesuai", "keliru", "warna salah", "ukuran salah"]
+      },
+      {
+        "nama": "Menyampaikan dengan tenang dan bukti",
+        "kataKunci": ["foto", "bukti", "video unboxing", "kondisi"]
+      },
+      {
+        "nama": "Menyebutkan solusi yang diinginkan",
+        "kataKunci": ["retur", "ganti", "tukar", "refund", "pengembalian dana"]
+      }
+    ]
+  },
+  {
+    "id": "daily_05",
+    "kategori": "Daily Communication",
+    "nomor": "05",
+    "judul": "Menjelaskan alasan terlambat",
+    "situasi": "Kamu terlambat ke wawancara magang dan harus menjelaskannya.",
+    "tugas": "Minta maaf, jelaskan singkat, lalu alihkan ke hal positif.",
+    "durasi": 90,
+    "poin": [
+      {
+        "nama": "Meminta maaf secara profesional",
+        "kataKunci": ["mohon maaf", "minta maaf", "keterlambatan", "terlambat"]
+      },
+      {
+        "nama": "Alasan singkat tanpa berbelit-belit",
+        "kataKunci": ["kendala transportasi", "macet luar biasa", "gangguan perjalanan"]
+      },
+      {
+        "nama": "Menunjukkan kesiapan wawancara",
+        "kataKunci": ["siap", "sangat antusias", "kesempatan magang", "berkomitmen"]
+      },
+      {
+        "nama": "Mengalihkan ke poin keunggulan diri",
+        "kataKunci": ["kontribusi", "pengalaman", "belajar", "fokus"]
+      }
+    ]
+  },
+  {
+    "id": "peer_01",
+    "kategori": "Peer Communication",
+    "nomor": "01",
+    "judul": "Memperkenalkan diri di kelompok",
+    "situasi": "Kamu masuk kelompok tugas baru yang anggotanya belum kamu kenal.",
+    "tugas": "Perkenalkan dirimu dan peranmu dalam tugas.",
+    "durasi": 30,
+    "poin": [
+      {
+        "nama": "Salam ramah ke anggota tim",
+        "kataKunci": ["halo teman-teman", "hai semua", "kenalin", "salam kenal"]
+      },
+      {
+        "nama": "Menyebutkan nama dan kebiasaan kerja",
+        "kataKunci": ["nama saya", "panggil aja", "terbiasa", "senang bekerja sama"]
+      },
+      {
+        "nama": "Menawarkan peran atau keahlian",
+        "kataKunci": ["bantu riset", "bikin slide", "analisis", "koding", "menulis", "peran"]
+      }
+    ]
+  },
+  {
+    "id": "peer_02",
+    "kategori": "Peer Communication",
+    "nomor": "02",
+    "judul": "Menawarkan ide dalam diskusi",
+    "situasi": "Kelompokmu bingung menentukan topik presentasi.",
+    "tugas": "Sampaikan satu ide dengan alasan singkat.",
+    "durasi": 45,
+    "poin": [
+      {
+        "nama": "Meminta izin berbicara di diskusi",
+        "kataKunci": ["boleh usul", "gimana kalau", "ada saran", "punya ide"]
+      },
+      {
+        "nama": "Menyampaikan topik usulan",
+        "kataKunci": ["topik", "bahas tentang", "kasus", "tema"]
+      },
+      {
+        "nama": "Memberikan alasan yang relevan",
+        "kataKunci": ["alasannya", "karena menarik", "mudah dicari datanya", "relevan"]
+      },
+      {
+        "nama": "Meminta respon anggota lain",
+        "kataKunci": ["gimana menurut kalian", "setuju nggak", "pendapat kalian"]
+      }
+    ]
+  },
+  {
+    "id": "peer_03",
+    "kategori": "Peer Communication",
+    "nomor": "03",
+    "judul": "Menjelaskan ide ke teman",
+    "situasi": "Temanmu belum paham idemu.",
+    "tugas": "Jelaskan idemu dengan runtut dan mudah diikuti.",
+    "durasi": 60,
+    "poin": [
+      {
+        "nama": "Memulai dengan poin utama secara sederhana",
+        "kataKunci": ["maksudku begini", "poin utamanya", "intinya", "simpelnya"]
+      },
+      {
+        "nama": "Menggunakan analogi atau contoh konkret",
+        "kataKunci": ["contohnya", "ibaratnya", "bayangkan", "misalnya"]
+      },
+      {
+        "nama": "Langkah-langkah yang runtut",
+        "kataKunci": ["pertama", "kedua", "setelah itu", "terakhir"]
+      },
+      {
+        "nama": "Mengecek pemahaman lawan bicara",
+        "kataKunci": ["sudah cukup jelas", "bisa dipahami", "ada yang bingung"]
+      }
+    ]
+  },
+  {
+    "id": "peer_04",
+    "kategori": "Peer Communication",
+    "nomor": "04",
+    "judul": "Menegur teman yang mendominasi",
+    "situasi": "Satu anggota terus memotong dan menguasai pembicaraan.",
+    "tugas": "Sampaikan pendapatmu dengan sopan dan beri ruang bagi yang lain.",
+    "durasi": 75,
+    "poin": [
+      {
+        "nama": "Apresiasi keaktifan teman tersebut",
+        "kataKunci": ["pendapatmu bagus", "makasih masukannya", "terima kasih idenya"]
+      },
+      {
+        "nama": "Menyampaikan perlunya masukan anggota lain",
+        "kataKunci": ["kita juga perlu dengar", "anggota lain", "teman-teman lain"]
+      },
+      {
+        "nama": "Memberi ruang dan melempar pertanyaan",
+        "kataKunci": ["bagaimana pendapat", "giliran", "beri kesempatan", "satu per satu"]
+      },
+      {
+        "nama": "Menjaga suasana tim tetap kondusif",
+        "kataKunci": ["biar adil", "kerja tim", "semua terlibat", "kompak"]
+      }
+    ]
+  },
+  {
+    "id": "peer_05",
+    "kategori": "Peer Communication",
+    "nomor": "05",
+    "judul": "Menyelesaikan beda pendapat",
+    "situasi": "Dua anggota berselisih soal pembagian tugas.",
+    "tugas": "Jadi penengah, rangkum kedua sisi, dan usulkan jalan tengah.",
+    "durasi": 90,
+    "poin": [
+      {
+        "nama": "Menenangkan situasi perselisihan",
+        "kataKunci": ["tenang dulu", "kita diskusikan santai", "jangan emosi", "tujuan kita sama"]
+      },
+      {
+        "nama": "Merangkum sudut pandang pihak A",
+        "kataKunci": ["dari sudut pandang", "usul kamu adalah", "kelebihannya"]
+      },
+      {
+        "nama": "Merangkum sudut pandang pihak B",
+        "kataKunci": ["sedangkan usul", "kekhawatiranmu adalah", "poin pentingnya"]
+      },
+      {
+        "nama": "Mengusulkan solusi jalan tengah",
+        "kataKunci": ["jalan tengah", "kompromi", "kita gabungkan", "dibagi rata", "solusi terbaik"]
+      }
+    ]
+  },
+  {
+    "id": "public_01",
+    "kategori": "Public Speaking",
+    "nomor": "01",
+    "judul": "Membuka presentasi di kelas",
+    "situasi": "Kamu mendapat giliran pertama presentasi tugas kelompok.",
+    "tugas": "Sapa audiens, sebutkan topik dan tujuanmu.",
+    "durasi": 45,
+    "poin": [
+      {
+        "nama": "Salam pembuka dan sapa audiens",
+        "kataKunci": ["selamat pagi", "selamat siang", "assalamualaikum", "halo semua", "bapak dosen", "teman-teman"]
+      },
+      {
+        "nama": "Menyebutkan identitas kelompok",
+        "kataKunci": ["kami dari kelompok", "anggota kami", "saya mewakili"]
+      },
+      {
+        "nama": "Menyampaikan topik presentasi",
+        "kataKunci": ["hari ini kami akan mempresentasikan", "topik kami", "membahas mengenai"]
+      },
+      {
+        "nama": "Menyampaikan tujuan dan manfaat",
+        "kataKunci": ["tujuannya", "harapan kami", "manfaat", "agar kita memahami"]
+      }
+    ]
+  },
+  {
+    "id": "public_02",
+    "kategori": "Public Speaking",
+    "nomor": "02",
+    "judul": "Memaparkan satu gagasan utama",
+    "situasi": "Kamu diminta menjelaskan satu gagasan dalam seminar kecil.",
+    "tugas": "Sampaikan dengan pembuka, isi, dan penutup.",
+    "durasi": 60,
+    "poin": [
+      {
+        "nama": "Pembuka gagasan",
+        "kataKunci": ["latar belakang", "gagasan yang ingin saya bawa", "fakta menarik"]
+      },
+      {
+        "nama": "Penjelasan inti gagasan",
+        "kataKunci": ["gagasan utamanya", "solusinya adalah", "konsep ini"]
+      },
+      {
+        "nama": "Dampak positif gagasan",
+        "kataKunci": ["manfaatnya", "dampaknya", "akan memudahkan", "efisiensi"]
+      },
+      {
+        "nama": "Penutup yang kuat",
+        "kataKunci": ["kesimpulannya", "demikian gagasan saya", "terima kasih"]
+      }
+    ]
+  },
+  {
+    "id": "public_03",
+    "kategori": "Public Speaking",
+    "nomor": "03",
+    "judul": "Menjawab pertanyaan penonton",
+    "situasi": "Seorang peserta bertanya kritis soal hasil presentasimu.",
+    "tugas": "Jawab dengan tenang, tepat, dan beri satu contoh.",
+    "durasi": 75,
+    "poin": [
+      {
+        "nama": "Apresiasi atas pertanyaan kritis",
+        "kataKunci": ["pertanyaan yang sangat bagus", "terima kasih pertanyaannya", "menarik sekali"]
+      },
+      {
+        "nama": "Menjawab poin inti secara lugas",
+        "kataKunci": ["menjawab hal tersebut", "berdasarkan data", "sebenarnya", "fokus kami"]
+      },
+      {
+        "nama": "Memberikan satu contoh konkret",
+        "kataKunci": ["sebagai contoh", "misalnya kasus", "contoh nyatanya"]
+      },
+      {
+        "nama": "Konfirmasi kepuasan penanya",
+        "kataKunci": ["apakah menjawab", "cukup jelas", "semoga menjawab pertanyaannya"]
+      }
+    ]
+  },
+  {
+    "id": "public_04",
+    "kategori": "Public Speaking",
+    "nomor": "04",
+    "judul": "Mengajak audiens bertindak",
+    "situasi": "Kamu berbicara di acara organisasi untuk mengajak mahasiswa ikut kegiatan.",
+    "tugas": "Yakinkan dengan alasan kuat dan ajakan yang jelas.",
+    "durasi": 90,
+    "poin": [
+      {
+        "nama": "Menjelaskan masalah atau urgensi",
+        "kataKunci": ["kebutuhan", "tantangan kita saat ini", "kesempatan emas", "urgensi"]
+      },
+      {
+        "nama": "Keuntungan yang didapat mahasiswa",
+        "kataKunci": ["pengalaman", "relasi", "portofolio", "sertifikat", "skill baru"]
+      },
+      {
+        "nama": "Ajakan bertindak yang jelas (Call to Action)",
+        "kataKunci": ["mari bergabung", "daftarkan diri kalian", "klik link", "ayo ambil bagian"]
+      },
+      {
+        "nama": "Batas waktu dan cara daftar",
+        "kataKunci": ["pendaftaran dibuka", "segera daftar", "tempat terbatas"]
+      }
+    ]
+  },
+  {
+    "id": "public_05",
+    "kategori": "Public Speaking",
+    "nomor": "05",
+    "judul": "Presentasi singkat tanpa catatan",
+    "situasi": "Kamu mendapat kesempatan memaparkan ide kepada juri tanpa naskah.",
+    "tugas": "Sampaikan idemu secara runtut dan menarik dalam waktu terbatas.",
+    "durasi": 120,
+    "poin": [
+      {
+        "nama": "Hook pembuka yang menarik juri",
+        "kataKunci": ["pernahkah bapak ibu membayangkan", "tahukah Anda", "masalah terbesar saat ini"]
+      },
+      {
+        "nama": "Memperkenalkan solusi TAMPIL",
+        "kataKunci": ["solusi kami", "aplikasi tampil", "ai communication coach", "teknologi"]
+      },
+      {
+        "nama": "Fitur unggulan dan nilai tambah",
+        "kataKunci": ["analisis suara real-time", "feedback terstruktur", "roadmap belajar", "akurasi"]
+      },
+      {
+        "nama": "Penutup dan visi masa depan",
+        "kataKunci": ["kami percaya", "generasi percaya diri", "terima kasih dewan juri", "mari tampil"]
+      }
+    ]
+  },
+  {
+    "id": "proyek_terlambat",
+    "kategori": "Peer Communication",
+    "nomor": "Legacy",
+    "judul": "Proyek Terlambat",
+    "situasi": "Kamu bertanggung jawab atas sebuah proyek kelompok yang mengalami keterlambatan.",
+    "tugas": "Jelaskan penyebab keterlambatan, langkah penyelesaian, dan rencana berikutnya.",
+    "durasi": 60,
+    "poin": [
+      {
+        "nama": "Menjelaskan kondisi proyek",
+        "kataKunci": ["proyek", "keterlambatan", "terlambat", "belum selesai"]
+      },
+      {
+        "nama": "Menyebutkan penyebab",
+        "kataKunci": ["kendala", "hambatan", "penyebab", "masalah"]
+      },
+      {
+        "nama": "Menjelaskan langkah penyelesaian",
+        "kataKunci": ["solusi", "menyelesaikan", "langkah", "perbaikan"]
+      },
+      {
+        "nama": "Menyampaikan rencana berikutnya",
+        "kataKunci": ["target", "jadwal baru", "rencana", "deadline"]
+      }
+    ]
+  },
+  {
+    "id": "wawancara_kerja",
+    "kategori": "Public Speaking",
+    "nomor": "Legacy",
+    "judul": "Wawancara Kerja",
+    "situasi": "Kamu sedang mengikuti wawancara kerja dan diminta memperkenalkan diri.",
+    "tugas": "Perkenalkan diri, jelaskan kemampuan, pengalaman, dan alasan melamar.",
+    "durasi": 120,
+    "poin": [
+      {
+        "nama": "Memperkenalkan diri",
+        "kataKunci": ["nama saya", "perkenalkan", "saya adalah"]
+      },
+      {
+        "nama": "Menjelaskan kemampuan",
+        "kataKunci": ["kemampuan", "keahlian", "mampu", "keterampilan"]
+      },
+      {
+        "nama": "Menjelaskan pengalaman",
+        "kataKunci": ["pengalaman", "pernah", "sebelumnya"]
+      },
+      {
+        "nama": "Menyampaikan alasan melamar",
+        "kataKunci": ["melamar", "tertarik", "ingin bergabung", "alasan"]
+      }
+    ]
+  }
+]
