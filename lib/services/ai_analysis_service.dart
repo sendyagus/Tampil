@@ -86,43 +86,35 @@ class SpeechAnalysisResult {
     this.isFallback = false,
   });
 
-  /// Data default simulasi saat server offline / demo
-  factory SpeechAnalysisResult.demoDefault() {
+  /// Hasil jujur saat server AI/Groq tidak tersedia atau analisis gagal:
+  /// transkrip KOSONG dan semua skor 0 — TIDAK ADA data dummy.
+  /// Ditandai isFallback agar layar analyzing menawarkan retry, bukan
+  /// menampilkan angka palsu atau menyimpan riwayat bohongan.
+  factory SpeechAnalysisResult.emptyFallback() {
     return const SpeechAnalysisResult(
-      transcript:
-          'Jadi menurut saya, eee kita perlu mempertimbangkan solusi alternatif karena waktunya terbatas.',
-      durationSeconds: 52.0,
-      wordsPerMinute: 142,
-      fillerWordsCount: 6,
-      communicationIndex: 70,
-      scoreLabel: 'Baik',
-      pointsAdded: 6,
-      keyPointsRatio: '3/4',
-      keyPoints: [
-        KeyPointStatus(
-          text: 'Menyebutkan konteks masalah secara jelas',
-          isCovered: true,
-        ),
-        KeyPointStatus(
-          text: 'Memberikan argumen utama yang runtut',
-          isCovered: true,
-        ),
-        KeyPointStatus(
-          text: 'Mengajukan solusi alternatif untuk rekan tim',
-          isCovered: true,
-        ),
-        KeyPointStatus(
-          text: 'Menyimpulkan kesepakatan di akhir bicara',
-          isCovered: false,
-        ),
-      ],
-      breakdown: ScoreBreakdown(),
-      strengthText: 'Kamu langsung menyebut ide utama di awal.',
-      improvementText: 'Kurangi filler saat berpikir.',
-      quoteSample: '“eee, jadi menurutku, eee...”',
-      suggestionText:
-          '“Menurutku, idenya perlu diuji dulu karena waktunya terbatas.”',
-      nextLessonTitle: 'Belajar Lesson 2',
+      transcript: '',
+      durationSeconds: 0.0,
+      wordsPerMinute: 0,
+      fillerWordsCount: 0,
+      communicationIndex: 0,
+      scoreLabel: 'AI Tidak Tersedia',
+      pointsAdded: 0,
+      keyPointsRatio: '0/0',
+      keyPoints: [],
+      breakdown: ScoreBreakdown(
+        kelancaranJeda: 0,
+        kebersihanUcapan: 0,
+        tempo: 0,
+        cakupanIsi: 0,
+        struktur: 0,
+      ),
+      strengthText: '',
+      improvementText:
+          'Rekaman belum dapat ditranskrip karena server AI tidak dapat '
+          'dihubungi. Tidak ada teks atau skor yang dibuat-buat.',
+      quoteSample: '',
+      suggestionText: 'Jalankan server AI (port 8000) lalu rekam ulang.',
+      nextLessonTitle: '',
       isFallback: true,
     );
   }
@@ -136,7 +128,7 @@ enum AiMode {
   /// Aplikasi memanggil Groq langsung, tanpa server apa pun.
   groqLangsung,
 
-  /// Keduanya tidak tersedia, hasil yang muncul hanya demo.
+  /// Keduanya tidak tersedia, hasil dikembalikan kosong (tanpa dummy).
   tidakTersedia,
 }
 
@@ -295,9 +287,9 @@ class AiAnalysisService {
       if (dipilih == AiMode.tidakTersedia) {
         debugPrint(
           '[AiAnalysisService] Server AI offline dan Groq langsung tidak '
-          'terpakai, menggunakan hasil demo.',
+          'terpakai: kembalikan hasil kosong (tanpa data dummy).',
         );
-        return SpeechAnalysisResult.demoDefault();
+        return SpeechAnalysisResult.emptyFallback();
       }
 
       // 1. Transkripsi suara: server lokal /transkrip atau Groq langsung
@@ -330,7 +322,8 @@ class AiAnalysisService {
       );
     } catch (e) {
       debugPrint('[AiAnalysisService] Terjadi error analisis: $e');
-      return SpeechAnalysisResult.demoDefault();
+      // Jangan pernah menampilkan teks/skor karangan: hasil kosong jujur.
+      return SpeechAnalysisResult.emptyFallback();
     }
   }
 
