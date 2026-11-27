@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 
 import '../../../services/auth_service.dart';
 import '../home_screen.dart';
-import '../onboarding/onboarding_screen.dart';
 import '../../utils/transition_utils.dart';
 import 'register_screen.dart';
 

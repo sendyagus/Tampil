@@ -22,6 +22,39 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Terjemahkan exception Firebase Auth menjadi pesan yang ramah untuk user.
+  /// Dipakai oleh layar login/register untuk menampilkan SnackBar error.
+  static String getErrorMessage(Object error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'invalid-email':
+          return 'Format email tidak valid.';
+        case 'user-disabled':
+          return 'Akun ini telah dinonaktifkan.';
+        case 'user-not-found':
+        case 'wrong-password':
+        case 'invalid-credential':
+          return 'Email atau kata sandi salah.';
+        case 'email-already-in-use':
+          return 'Email sudah terdaftar. Silakan login.';
+        case 'weak-password':
+          return 'Kata sandi terlalu lemah, minimal 6 karakter.';
+        case 'requires-recent-login':
+          return 'Silakan login kembali untuk melanjutkan.';
+        case 'too-many-requests':
+          return 'Terlalu banyak percobaan. Coba lagi beberapa saat.';
+        case 'network-request-failed':
+          return 'Koneksi jaringan bermasalah. Periksa internet Anda.';
+        case 'popup-closed-by-user':
+        case 'cancelled-provider-auth':
+          return 'Login dibatalkan.';
+        default:
+          return error.message ?? 'Terjadi kesalahan: ${error.code}';
+      }
+    }
+    return 'Terjadi kesalahan: $error';
+  }
+
   // Mendapatkan session/user saat ini
   User? get currentUser => _auth.currentUser;
   User? get currentSession => _auth.currentUser;
