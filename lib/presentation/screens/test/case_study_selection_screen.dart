@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../../../services/quota_service.dart';
 import 'microphone_permission_screen.dart';
 import 'recording_screen.dart';
 
@@ -267,9 +269,22 @@ class _CaseStudySelectionScreenState extends State<CaseStudySelectionScreen>
     _animController.forward(from: 0.0);
   }
 
-  void _startTest() {
+  void _startTest() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final q = await QuotaService().getOrSyncQuota(user.uid);
+      if (!q.hasTestQuota) {
+        if (mounted) {
+          QuotaService.showQuotaExceededDialog(context);
+        }
+        return;
+      }
+    }
+
     final currentCases = _caseData[_selectedCategory] ?? _caseData['Peer']!;
     final currentCase = currentCases[_selectedIndex];
+
+    if (!mounted) return;
 
     Navigator.of(context).push(
       MaterialPageRoute(

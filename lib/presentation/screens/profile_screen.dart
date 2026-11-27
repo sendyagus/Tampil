@@ -241,7 +241,7 @@ class ProfileScreen extends StatelessWidget {
                         }).toList();
 
                         return RiwayatTesWidget(
-                          items: historyItems.isNotEmpty ? historyItems : null,
+                          items: historyItems,
                           onViewAllPressed: () {
                             if (historySessions.isNotEmpty) {
                               _showAllHistorySheet(context, historySessions);

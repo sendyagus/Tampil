@@ -61,18 +61,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      // Pengguna baru registrasi diarahkan ke onboarding; pengguna lama langsung Home
-      final nextScreen = _authService.isRecentlyRegisteredUser()
-          ? const OnboardingScreen()
-          : const HomeScreen();
-      if (mounted) context.pushDissolveReplacement((_) => nextScreen);
+      if (mounted) context.pushDissolveReplacement((_) => const HomeScreen());
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Gagal login: ${e.toString().replaceAll("Exception:", "").trim()}',
-          ),
+          content: Text(AuthService.getErrorMessage(e)),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
@@ -96,22 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Pengguna baru registrasi diarahkan ke onboarding; pengguna lama langsung Home
-        final nextScreen =
-            _authService.isRecentlyRegisteredUser(user: credential.user)
-            ? const OnboardingScreen()
-            : const HomeScreen();
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => nextScreen));
-      } else if (credential == null && mounted) {
-        // User menutup halaman OAuth sebelum selesai (flow browser di Android/iOS)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login Google dibatalkan.'),
-            backgroundColor: Color(0xFF64748B),
-            behavior: SnackBarBehavior.floating,
-          ),
+        // Otomatis berpindah ke HomeScreen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } catch (e) {
@@ -119,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Gagal login Google: ${e.toString().replaceAll("Exception:", "").trim()}',
+              'Gagal login Google: ${AuthService.getErrorMessage(e)}',
             ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
