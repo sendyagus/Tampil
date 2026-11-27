@@ -460,6 +460,20 @@ class AiAnalysisService {
     final safeDuration = duration > 1.0 ? duration : 30.0;
     final wpm = ((totalWords / safeDuration) * 60).round();
 
+    // 1b. Deteksi "tidak ada kata": transkrip kosong atau hanya berisi
+    // sapaan/kata pengisi (eee, hmm, halo, dll.) dianggap tidak pernah
+    // mengucapkan kata, sehingga seluruh skor dan poin bernilai 0.
+    // Selaras dengan pemeriksaan kata_tidak_berisi di server.
+    final kataHampaRegex = RegExp(
+      r'^(e+h*m*|e+m+|h+m+|u+m+|a+h+|o+h+|halo|hai|hi|helo|hello)$',
+    );
+    final kataBermakna = transcript
+        .toLowerCase()
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((w) => w.isNotEmpty && !kataHampaRegex.hasMatch(w))
+        .length;
+    final tidakAdaKata = kataBermakna == 0;
+
     // 2. Hitung filler words (e.g. eee, hmm, anu, dll)
     final pengisiRegex = RegExp(
       r'\b(e+h*m*|e+m+|h+m+|u+m+|a+h+|e+r+|anu|gitu|kayak|kayaknya|nah|pokoknya)\b',
@@ -490,19 +504,19 @@ class AiAnalysisService {
       keyPoints.addAll([
         KeyPointStatus(
           text: 'Menyebutkan konteks masalah secara jelas',
-          isCovered: totalWords >= 3,
+          isCovered: kataBermakna >= 3,
         ),
         KeyPointStatus(
           text: 'Memberikan argumen utama yang runtut',
-          isCovered: totalWords >= 10,
+          isCovered: kataBermakna >= 10,
         ),
         KeyPointStatus(
           text: 'Mengajukan solusi alternatif untuk rekan tim',
-          isCovered: totalWords >= 20,
+          isCovered: kataBermakna >= 20,
         ),
         KeyPointStatus(
           text: 'Menyimpulkan kesepakatan di akhir bicara',
-          isCovered: totalWords >= 35,
+          isCovered: kataBermakna >= 35,
         ),
       ]);
       coveredCount = keyPoints.where((k) => k.isCovered).length;
@@ -514,13 +528,13 @@ class AiAnalysisService {
     // sesuai bobot rubrik yang ditentukan UI Detail Score.
 
     // A. Kebersihan ucapan (bobot 25%): Semakin sedikit filler words, semakin tinggi nilainya
-    final int skorKebersihan = totalWords == 0
+    final int skorKebersihan = tidakAdaKata
         ? 0
         : (96 - (fillersPerMin * 6)).clamp(0, 98);
 
     // B. Tempo (bobot 15%): Ideal percakapan 120-155 WPM
     final int skorTempo;
-    if (totalWords == 0) {
+    if (tidakAdaKata) {
       skorTempo = 0;
     } else if (wpm >= 115 && wpm <= 165) {
       skorTempo = (94 - ((wpm - 135).abs() * 0.5)).round().clamp(80, 96);
@@ -541,7 +555,9 @@ class AiAnalysisService {
     final int? skorRelevansiTema = feedbackData['skor_relevansi'] is num
         ? (feedbackData['skor_relevansi'] as num).toInt().clamp(0, 100)
         : null;
-    final int skorCakupan = skorRelevansiTema == null
+    final int skorCakupan = tidakAdaKata
+        ? 0
+        : skorRelevansiTema == null
         ? skorCakupanKataKunci
         : ((skorCakupanKataKunci * 0.5) + (skorRelevansiTema * 0.5))
               .round()
@@ -573,7 +589,9 @@ class AiAnalysisService {
         feedbackData['skor_kejelasan_konteks'] is num
         ? (feedbackData['skor_kejelasan_konteks'] as num).toInt().clamp(0, 100)
         : null;
-    final int skorStruktur = skorKejelasanKonteks == null
+    final int skorStruktur = tidakAdaKata
+        ? 0
+        : skorKejelasanKonteks == null
         ? skorStrukturDasar
         : ((skorStrukturDasar * 0.5) + (skorKejelasanKonteks * 0.5))
               .round()
@@ -610,7 +628,7 @@ class AiAnalysisService {
     }
 
     final int skorKelancaran;
-    if (totalWords == 0) {
+    if (tidakAdaKata) {
       // Tidak ada ucapan sama sekali = tidak ada kelancaran.
       skorKelancaran = 0;
     } else if (speakingSpan > 0.5) {
@@ -632,8 +650,8 @@ class AiAnalysisService {
     // G. TOTAL COMMUNICATION INDEX
     final int communicationIndex;
 
-    if (totalWords == 0) {
-      // Tidak ada ucapan = tidak ada nilai komunikasi.
+    if (tidakAdaKata) {
+      // Tidak ada kata bermakna = tidak ada nilai komunikasi (0 poin).
       communicationIndex = 0;
     } else {
       communicationIndex =
@@ -647,8 +665,8 @@ class AiAnalysisService {
     }
 
     // H. POIN YANG DIDAPAT
-    // Jika tidak ada ucapan, pengguna tidak mendapat poin.
-    final int pointsAdded = totalWords == 0
+    // Jika tidak ada kata yang terdeteksi, pengguna tidak mendapat poin.
+    final int pointsAdded = tidakAdaKata
         ? 0
         : (communicationIndex / 12).round().clamp(1, 10);
 
@@ -695,7 +713,7 @@ class AiAnalysisService {
 
     final String label;
 
-    if (totalWords == 0) {
+    if (tidakAdaKata) {
       label = 'Belum Ada Ucapan';
     } else if (communicationIndex >= 85) {
       label = 'Luar Biasa';
@@ -715,7 +733,7 @@ class AiAnalysisService {
     return SpeechAnalysisResult(
       transcript: displayTranscript,
       durationSeconds: safeDuration,
-      wordsPerMinute: totalWords == 0 ? 0 : wpm,
+      wordsPerMinute: tidakAdaKata ? 0 : wpm,
       fillerWordsCount: fillerCount,
       communicationIndex: communicationIndex,
       scoreLabel: label,
